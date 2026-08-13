@@ -1,0 +1,1 @@
+ALTER TABLE `scrapedApps` ADD `reviewStatus` enum('ok','unavailable') DEFAULT 'ok' NOT NULL;
