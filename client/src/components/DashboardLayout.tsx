@@ -21,11 +21,14 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BookOpen, Bot, Compass, Database, GitCompareArrows, LayoutDashboard, LogOut, MoonStar, PanelLeft, Settings2, UploadCloud } from "lucide-react";
+import { BookOpen, Bot, Compass, Database, GitCompareArrows, KeyRound, LayoutDashboard, LogOut, MoonStar, PanelLeft, Settings2, UploadCloud } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast as sonnerToast } from "sonner";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
-import { Button } from "./ui/button";
 
 const menuItems = [
  { icon: LayoutDashboard, label: "Overview", path: "/" },
@@ -62,25 +65,57 @@ export default function DashboardLayout({
  return <DashboardLayoutSkeleton />
  }
 
+ const [pinInput, setPinInput] = useState("");
+ const loginPinMutation = trpc.auth.loginPin.useMutation({
+   onSuccess: async (res) => {
+     try {
+       if (res?.token) {
+         sessionStorage.setItem("manus-cookie", `app_session_id=${res.token};`);
+       }
+     } catch {}
+     sonnerToast.success("Welcome back, Founder!");
+     await utils.auth.me.invalidate();
+   },
+   onError: (error) => {
+     sonnerToast.error("Authentication failed", { description: error.message });
+   }
+ });
+ const utils = trpc.useUtils();
+
  if (!user) {
  return (
- <div className="flex items-center justify-center min-h-screen">
- <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
- <div className="flex flex-col items-center gap-6">
- <h1 className="text-2xl font-semibold tracking-tight text-center">
- Sign in to continue
+ <div className="flex items-center justify-center min-h-screen bg-black text-foreground p-4">
+ <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full rounded-2xl border border-border bg-[#0b0f17]">
+ <div className="flex flex-col items-center gap-4 text-center">
+ <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+ <KeyRound className="h-7 w-7" />
+ </div>
+ <h1 className="text-2xl font-semibold tracking-tight">
+ App Idea Hub Access
  </h1>
- <p className="text-sm text-muted-foreground text-center max-w-sm">
- Access to this dashboard requires authentication. Continue to launch the login flow.
+ <p className="text-sm text-muted-foreground">
+ Enter your personal founder PIN code (0566) to unlock your workspace.
  </p>
  </div>
+ <form onSubmit={(e) => { e.preventDefault(); loginPinMutation.mutate({ pin: pinInput }); }} className="w-full space-y-4">
+ <Input
+ type="password"
+ maxLength={8}
+ value={pinInput}
+ onChange={(e) => setPinInput(e.target.value)}
+ placeholder="Enter PIN (e.g. 0566)"
+ className="text-center text-lg tracking-widest bg-background"
+ autoFocus
+ />
  <Button
- onClick={() => startLogin()}
+ type="submit"
  size="lg"
- className="w-full hover: transition-all"
+ disabled={loginPinMutation.isPending || !pinInput.trim()}
+ className="w-full"
  >
- Sign in
+ {loginPinMutation.isPending ? "Verifying PIN..." : "Unlock Workspace"}
  </Button>
+ </form>
  </div>
  </div>
  );

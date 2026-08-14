@@ -10,6 +10,8 @@ import { parseStoreUrl, scrapeStoreApp } from "./scraper";
 import { refreshCompetitorMonitor } from "./competitorMonitoring";
 import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import { comparisonToMarkdown, ideaToMarkdown } from "./reports";
+import { sdk } from "./_core/sdk";
+import { upsertUser } from "./db";
 import {
   createChatMessage,
   createBatchJob,
@@ -67,6 +69,28 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    loginPin: publicProcedure.input(z.object({ pin: z.string() })).mutation(async ({ input, ctx }) => {
+      if (input.pin !== "0566") {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid PIN code. Please use 0566." });
+      }
+      const openId = "pin_founder_0566";
+      const name = "Personal Founder";
+      await upsertUser({
+        openId,
+        name,
+        email: "founder@appideahub.local",
+        loginMethod: "pin",
+        role: "admin",
+        lastSignedIn: new Date(),
+      });
+      const sessionToken = await sdk.createSessionToken(openId, { name });
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+      });
+      return { success: true, token: sessionToken } as const;
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
