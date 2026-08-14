@@ -55,32 +55,31 @@ export default function DashboardLayout({
  const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
  return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
  });
- const { loading, user } = useAuth();
-
- useEffect(() => {
- localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
- }, [sidebarWidth]);
-
- if (loading) {
- return <DashboardLayoutSkeleton />
- }
-
- const [pinInput, setPinInput] = useState("");
- const loginPinMutation = trpc.auth.loginPin.useMutation({
-   onSuccess: async (res) => {
-     try {
-       if (res?.token) {
-         sessionStorage.setItem("manus-cookie", `app_session_id=${res.token};`);
-       }
-     } catch {}
-     sonnerToast.success("Welcome back, Founder!");
-     await utils.auth.me.invalidate();
-   },
-   onError: (error) => {
-     sonnerToast.error("Authentication failed", { description: error.message });
-   }
- });
- const utils = trpc.useUtils();
+	 const { loading, user } = useAuth();
+	 const [pinInput, setPinInput] = useState("");
+	 const utils = trpc.useUtils();
+	 const loginPinMutation = trpc.auth.loginPin.useMutation({
+	   onSuccess: async (res) => {
+	     try {
+	       if (res?.token) {
+	         sessionStorage.setItem("manus-cookie", `app_session_id=${res.token};`);
+	       }
+	     } catch {}
+	     sonnerToast.success("Welcome back, Founder!");
+	     await utils.auth.me.invalidate();
+	   },
+	   onError: (error) => {
+	     sonnerToast.error("Authentication failed", { description: error.message });
+	   }
+	 });
+	
+	 useEffect(() => {
+	 localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
+	 }, [sidebarWidth]);
+	
+	 if (loading) {
+	 return <DashboardLayoutSkeleton />
+	 }
 
  if (!user) {
  return (
