@@ -71,6 +71,13 @@
       "when": 1786697088296,
       "tag": "0009_outstanding_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1786711877410,
+      "tag": "0010_medical_inertia",
+      "breakpoints": true
     }
   ]
 }

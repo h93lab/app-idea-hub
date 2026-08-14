@@ -203,6 +203,9 @@ export const competitorMonitors = mysqlTable("competitor_monitors", {
   store: varchar("store", { length: 32 }).notNull(),
   lastVersion: varchar("lastVersion", { length: 64 }),
   lastRating: varchar("lastRating", { length: 32 }),
+  sentimentPositivePercent: int("sentimentPositivePercent"),
+  sentimentNegativePercent: int("sentimentNegativePercent"),
+  sentimentSummary: text("sentimentSummary"),
   statusMessage: text("statusMessage"),
   hasChanges: int("hasChanges").default(0).notNull(),
   scheduleCronTaskUid: varchar("schedule_cron_task_uid", { length: 65 }),
@@ -252,6 +255,7 @@ export const marketingDescriptionArchives = mysqlTable("marketing_description_ar
   language: varchar("language", { length: 40 }).notNull(),
   description: text("description").notNull(),
   model: varchar("model", { length: 220 }).notNull(),
+  isEdited: int("isEdited").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => ({
   userIdx: index("marketing_description_archives_user_idx").on(table.userId, table.createdAt),

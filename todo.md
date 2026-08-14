@@ -35,3 +35,21 @@
 # Follow-up Gap Resolution TODO
 - [x] Make the marketing archive fully browsable beyond the first 12 records
 - [x] Add a UI test proving older archive records remain available for comparison
+
+# Final User Requests TODO
+- [x] Add manual editor for generated marketing descriptions before saving or exporting
+- [x] Add AI-powered sentiment analysis for competitor reviews with positive/negative ratio display
+- [x] Refactor UI theme to Black AMOLED with pure black background, electric blue accents only, and flat icons
+- [x] Add Vitest tests for sentiment analysis and manual editing, verify build and visual state
+
+# Mandatory Gap Resolution TODO
+- [x] Add pre-save draft editor for generated marketing descriptions before archiving or exporting
+- [x] Implement LLM-powered review sentiment analysis for competitor reviews and display percentage ratio
+- [x] Sweep Personal Studio and layout styling to ensure pure black AMOLED with electric blue accents and flat icons only (remove remaining violet/cyan/amber/emerald/rose accents)
+- [x] Add Vitest tests for pre-save marketing editing and AI sentiment analysis, and execute final build and visual verification
+
+# Precise Gap Closure TODO
+- [ ] Implement pre-save marketing draft editor in ASO tab before archiving or exporting
+- [ ] Remove all non-blue accents (violet, cyan, amber, emerald, rose) from PersonalStudio.tsx and replace with electric blue and monochrome AMOLED tokens
+- [ ] Add Vitest tests for pre-save marketing draft editing and AI sentiment analysis
+- [ ] Run pnpm check, pnpm test, pnpm build, and take a visual verification screenshot

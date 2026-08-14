@@ -406,7 +406,7 @@ export async function deleteCompetitorMonitor(userId: number, id: number) {
   return { deleted: true };
 }
 
-export async function recordCompetitorMonitorCheck(id: number, result: { name?: string; version?: string; rating?: string }) {
+export async function recordCompetitorMonitorCheck(id: number, result: { name?: string; version?: string; rating?: string; sentimentPositivePercent?: number; sentimentNegativePercent?: number; sentimentSummary?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const monitor = (await db.select().from(competitorMonitors).where(eq(competitorMonitors.id, id)).limit(1))[0];
@@ -417,7 +417,7 @@ export async function recordCompetitorMonitorCheck(id: number, result: { name?: 
   if (hasBaseline && monitor.lastRating !== (result.rating ?? null)) changes.push(`rating ${monitor.lastRating ?? "unknown"} → ${result.rating ?? "unknown"}`);
   const changed = changes.length > 0;
   const statusMessage = !hasBaseline ? "Baseline captured. Future checks will report version or rating changes." : changed ? `Detected changes: ${changes.join("; ")}` : "Checked successfully. No version or rating changes detected.";
-  await db.update(competitorMonitors).set({ lastVersion: result.version ?? null, lastRating: result.rating ?? null, statusMessage, hasChanges: changed ? 1 : 0, lastCheckedAt: new Date() }).where(eq(competitorMonitors.id, id));
+  await db.update(competitorMonitors).set({ lastVersion: result.version ?? null, lastRating: result.rating ?? null, sentimentPositivePercent: result.sentimentPositivePercent ?? null, sentimentNegativePercent: result.sentimentNegativePercent ?? null, sentimentSummary: result.sentimentSummary ?? null, statusMessage, hasChanges: changed ? 1 : 0, lastCheckedAt: new Date() }).where(eq(competitorMonitors.id, id));
   if (result.rating) {
     await db.insert(competitorRatingHistory).values({ monitorId: id, userId: monitor.userId, rating: result.rating, capturedAt: new Date() });
   }
@@ -503,4 +503,11 @@ export async function getKeywordExplorer(userId: number, id: number) {
   const db = await getDb();
   if (!db) return undefined;
   return (await db.select().from(keywordExplorers).where(and(eq(keywordExplorers.userId, userId), eq(keywordExplorers.id, id))).limit(1))[0];
+}
+
+export async function updateMarketingDescriptionArchive(userId: number, id: number, description: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(marketingDescriptionArchives).set({ description: description.trim(), isEdited: 1 }).where(and(eq(marketingDescriptionArchives.userId, userId), eq(marketingDescriptionArchives.id, id)));
+  return getMarketingDescriptionArchive(userId, id);
 }

@@ -5,10 +5,11 @@ const mocks = vi.hoisted(() => ({
   getCompetitorMonitorByTaskUid: vi.fn(),
   recordCompetitorMonitorCheck: vi.fn(),
   scrapeStoreApp: vi.fn(),
+  getOpenRouterSetting: vi.fn(),
 }));
 
 vi.mock("./_core/notification", () => ({ notifyOwner: mocks.notifyOwner }));
-vi.mock("./db", () => ({ getCompetitorMonitorByTaskUid: mocks.getCompetitorMonitorByTaskUid, recordCompetitorMonitorCheck: mocks.recordCompetitorMonitorCheck }));
+vi.mock("./db", () => ({ getCompetitorMonitorByTaskUid: mocks.getCompetitorMonitorByTaskUid, recordCompetitorMonitorCheck: mocks.recordCompetitorMonitorCheck, getOpenRouterSetting: mocks.getOpenRouterSetting }));
 vi.mock("./scraper", () => ({ scrapeStoreApp: mocks.scrapeStoreApp }));
 
 import { refreshCompetitorMonitor, refreshCompetitorMonitorByTaskUid } from "./competitorMonitoring";
@@ -17,7 +18,8 @@ const monitor = { id: 4, userId: 7, appName: "Tracked app", sourceUrl: "https://
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.scrapeStoreApp.mockResolvedValue({ store: "google_play", name: "Tracked app", version: "1.1", rating: "4.1" });
+  mocks.scrapeStoreApp.mockResolvedValue({ store: "google_play", name: "Tracked app", version: "1.1", rating: "4.1", reviews: [] });
+  mocks.getOpenRouterSetting.mockResolvedValue(undefined);
   mocks.recordCompetitorMonitorCheck.mockResolvedValue({ changed: true, baselineCaptured: false, statusMessage: "Detected changes: version 1.0 → 1.1", monitor });
   mocks.notifyOwner.mockResolvedValue(true);
 });
@@ -26,7 +28,7 @@ describe("competitor monitoring", () => {
   it("scrapes the listing and notifies only after a detected change", async () => {
     const result = await refreshCompetitorMonitor(monitor);
     expect(mocks.scrapeStoreApp).toHaveBeenCalledWith(monitor.sourceUrl);
-    expect(mocks.recordCompetitorMonitorCheck).toHaveBeenCalledWith(4, { name: "Tracked app", version: "1.1", rating: "4.1" });
+    expect(mocks.recordCompetitorMonitorCheck).toHaveBeenCalledWith(4, { name: "Tracked app", version: "1.1", rating: "4.1", sentimentPositivePercent: 50, sentimentNegativePercent: 50, sentimentSummary: "No store reviews available for sentiment analysis." });
     expect(mocks.notifyOwner).toHaveBeenCalledWith(expect.objectContaining({ title: "Competitor changed: Tracked app" }));
     expect(result.notificationSent).toBe(true);
   });

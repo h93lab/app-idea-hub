@@ -30,7 +30,7 @@ function Router() {
 
 function App() {
   return <ErrorBoundary>
-        <ThemeProvider defaultTheme="light" switchable>
+        <ThemeProvider defaultTheme="amoled" switchable>
       <TooltipProvider>
         <Toaster />
         <Router />

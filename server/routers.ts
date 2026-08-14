@@ -41,6 +41,7 @@ import {
   listKeywordExplorers,
   listMarketingDescriptionArchives,
   deleteMarketingDescriptionArchive,
+  updateMarketingDescriptionArchive,
   getKeywordExplorer,
   saveKeywordExplorer,
   saveKeywordMarketingDescription,
@@ -179,6 +180,7 @@ export const appRouter = router({
     list: protectedProcedure.query(({ ctx }) => listKeywordExplorers(ctx.user.id)),
     archives: protectedProcedure.query(({ ctx }) => listMarketingDescriptionArchives(ctx.user.id)),
     deleteArchive: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => deleteMarketingDescriptionArchive(ctx.user.id, input.id)),
+    updateArchive: protectedProcedure.input(z.object({ id: z.number().int().positive(), description: z.string().min(10).max(10000) })).mutation(({ ctx, input }) => updateMarketingDescriptionArchive(ctx.user.id, input.id, input.description)),
     explore: protectedProcedure.input(z.object({ keyword: z.string().min(2).max(128), context: z.string().max(1000).optional() })).mutation(async ({ ctx, input }) => {
       const keyword = input.keyword.trim();
       const signals = await getKeywordStoreSignals(ctx.user.id, keyword);
