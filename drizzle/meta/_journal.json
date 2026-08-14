@@ -57,6 +57,13 @@
       "when": 1786675427030,
       "tag": "0007_many_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1786676242084,
+      "tag": "0008_real_trish_tilby",
+      "breakpoints": true
     }
   ]
 }

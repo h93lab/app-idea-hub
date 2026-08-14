@@ -15,7 +15,13 @@
 - [x] Add executed UI tests for Personal Studio flows and runtime AMOLED class persistence
 
 # Feature Expansion TODO
-- [ ] Add competitor monitoring schema and background tracker
-- [ ] Add Keyword Explorer table and search analysis router
-- [ ] Add Flutter Blueprint ZIP export endpoint using archiver
-- [ ] Add Vitest tests for monitor, keywords, and zip export
+- [x] Add competitor monitoring schema and background tracker
+- [x] Add Keyword Explorer table and search analysis router
+- [x] Add Flutter Blueprint ZIP export endpoint using archiver
+- [x] Add Vitest tests for monitor, keywords, and zip export
+
+# Additional User Requests TODO
+- [x] Add loading state and sonner notifications for Flutter Blueprint ZIP export
+- [x] Add AI marketing description generator in Keyword Explorer
+- [x] Add competitor rating history tracking table and Recharts timeline visualization
+- [x] Add Vitest tests for the new features and verify build

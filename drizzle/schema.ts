@@ -137,6 +137,7 @@ export type Competitor = typeof competitors.$inferSelect;
 export type InsertCompetitor = typeof competitors.$inferInsert;
 export type ScrapedApp = typeof scrapedApps.$inferSelect;
 export type CompetitorMonitor = typeof competitorMonitors.$inferSelect;
+export type CompetitorRatingHistory = typeof competitorRatingHistory.$inferSelect;
 export type KeywordExplorer = typeof keywordExplorers.$inferSelect;
 export type OpenRouterSetting = typeof openRouterSettings.$inferSelect;
 export type IdeaChatMessage = typeof ideaChatMessages.$inferSelect;
@@ -211,6 +212,17 @@ export const competitorMonitors = mysqlTable("competitor_monitors", {
   scheduleIdx: index("competitor_monitors_schedule_idx").on(table.scheduleCronTaskUid),
 }));
 
+export const competitorRatingHistory = mysqlTable("competitor_rating_history", {
+  id: int("id").autoincrement().primaryKey(),
+  monitorId: int("monitorId").notNull(),
+  userId: int("userId").notNull(),
+  rating: varchar("rating", { length: 32 }).notNull(),
+  capturedAt: timestamp("capturedAt").defaultNow().notNull(),
+}, table => ({
+  monitorIdx: index("competitor_rating_history_monitor_idx").on(table.monitorId, table.capturedAt),
+  userIdx: index("competitor_rating_history_user_idx").on(table.userId),
+}));
+
 export const keywordExplorers = mysqlTable("keyword_explorers", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -221,6 +233,9 @@ export const keywordExplorers = mysqlTable("keyword_explorers", {
   competitorCount: int("competitorCount").default(0).notNull(),
   notes: text("notes"),
   analysis: text("analysis"),
+  marketingDescription: text("marketingDescription"),
+  marketingModel: varchar("marketingModel", { length: 220 }),
+  marketingGeneratedAt: timestamp("marketingGeneratedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => ({ userIdx: index("keyword_explorers_user_idx").on(table.userId) }));

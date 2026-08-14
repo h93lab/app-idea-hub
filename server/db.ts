@@ -10,6 +10,7 @@ import {
   openRouterSettings,
   personalWorkspaces,
   competitorMonitors,
+  competitorRatingHistory,
   keywordExplorers,
   scrapedAppReviews,
   scrapedApps,
@@ -361,7 +362,7 @@ export async function resetPersonalWorkspace(userId: number) {
   });
 }
 
-export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems, personalWorkspaces, competitorMonitors, keywordExplorers };
+export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems, personalWorkspaces, competitorMonitors, competitorRatingHistory, keywordExplorers };
 
 export async function listCompetitorMonitors(userId: number) {
   const db = await getDb();
@@ -416,6 +417,9 @@ export async function recordCompetitorMonitorCheck(id: number, result: { name?: 
   const changed = changes.length > 0;
   const statusMessage = !hasBaseline ? "Baseline captured. Future checks will report version or rating changes." : changed ? `Detected changes: ${changes.join("; ")}` : "Checked successfully. No version or rating changes detected.";
   await db.update(competitorMonitors).set({ lastVersion: result.version ?? null, lastRating: result.rating ?? null, statusMessage, hasChanges: changed ? 1 : 0, lastCheckedAt: new Date() }).where(eq(competitorMonitors.id, id));
+  if (result.rating) {
+    await db.insert(competitorRatingHistory).values({ monitorId: id, userId: monitor.userId, rating: result.rating, capturedAt: new Date() });
+  }
   return { monitor: await getCompetitorMonitor(monitor.userId, id), changed, changes, baselineCaptured: !hasBaseline, statusMessage };
 }
 
@@ -423,6 +427,30 @@ export async function listKeywordExplorers(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(keywordExplorers).where(eq(keywordExplorers.userId, userId)).orderBy(desc(keywordExplorers.updatedAt), desc(keywordExplorers.id));
+}
+
+export async function listCompetitorRatingHistory(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    id: competitorRatingHistory.id,
+    monitorId: competitorRatingHistory.monitorId,
+    appName: competitorMonitors.appName,
+    store: competitorMonitors.store,
+    rating: competitorRatingHistory.rating,
+    capturedAt: competitorRatingHistory.capturedAt,
+  }).from(competitorRatingHistory).innerJoin(competitorMonitors, eq(competitorRatingHistory.monitorId, competitorMonitors.id)).where(eq(competitorRatingHistory.userId, userId)).orderBy(competitorRatingHistory.capturedAt);
+  return rows;
+}
+
+export async function saveKeywordMarketingDescription(userId: number, keywordExplorerId: number, description: string, model: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const existing = (await db.select().from(keywordExplorers).where(and(eq(keywordExplorers.id, keywordExplorerId), eq(keywordExplorers.userId, userId))).limit(1))[0];
+  if (!existing) throw new Error("Keyword exploration not found");
+  const generatedAt = new Date();
+  await db.update(keywordExplorers).set({ marketingDescription: description, marketingModel: model, marketingGeneratedAt: generatedAt, updatedAt: generatedAt }).where(and(eq(keywordExplorers.id, keywordExplorerId), eq(keywordExplorers.userId, userId)));
+  return (await db.select().from(keywordExplorers).where(eq(keywordExplorers.id, keywordExplorerId)).limit(1))[0];
 }
 
 export async function saveKeywordExplorer(userId: number, payload: { keyword: string; searchVolume?: number; difficulty?: number; cpiEstimate?: string | null; competitorCount?: number; notes?: string; analysis?: string | null }) {
@@ -446,4 +474,10 @@ export async function getKeywordStoreSignals(userId: number, keyword: string) {
   const term = `%${keyword.trim()}%`;
   const matches = await db.select({ name: scrapedApps.name }).from(scrapedApps).where(and(eq(scrapedApps.userId, userId), or(like(scrapedApps.name, term), like(scrapedApps.description, term)))).orderBy(desc(scrapedApps.updatedAt)).limit(10);
   return { competitorCount: matches.length, examples: matches.map(item => item.name) };
+}
+
+export async function getKeywordExplorer(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(keywordExplorers).where(and(eq(keywordExplorers.userId, userId), eq(keywordExplorers.id, id))).limit(1))[0];
 }
