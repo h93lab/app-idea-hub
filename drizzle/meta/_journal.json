@@ -29,6 +29,20 @@
       "when": 1786671031386,
       "tag": "0003_fluffy_pestilence",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786672347212,
+      "tag": "0004_magical_mockingbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786672986254,
+      "tag": "0005_stiff_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }

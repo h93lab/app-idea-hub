@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "amoled";
+
+export function nextTheme(theme: Theme): Theme {
+  return theme === "light" ? "dark" : theme === "dark" ? "amoled" : "light";
+}
+
+export function themeClasses(theme: Theme) {
+  return { dark: theme === "dark" || theme === "amoled", amoled: theme === "amoled" };
+}
 
 interface ThemeContextType {
   theme: Theme;
@@ -24,27 +32,23 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(() => {
     if (switchable) {
       const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
+      return stored === "light" || stored === "dark" || stored === "amoled" ? stored : defaultTheme;
     }
     return defaultTheme;
   });
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-
-    if (switchable) {
-      localStorage.setItem("theme", theme);
-    }
+    const classes = themeClasses(theme);
+    root.classList.toggle("dark", classes.dark);
+    root.classList.toggle("amoled", classes.amoled);
+    root.dataset.theme = theme;
+    if (switchable) localStorage.setItem("theme", theme);
   }, [theme, switchable]);
 
   const toggleTheme = switchable
     ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
+        setTheme(nextTheme);
       }
     : undefined;
 

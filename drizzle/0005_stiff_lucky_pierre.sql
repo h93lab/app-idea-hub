@@ -1,0 +1,1 @@
+ALTER TABLE `personalWorkspaces` ADD `validationArtifacts` json NOT NULL;

@@ -16,6 +16,8 @@ import {
   getIdeasForComparison,
   getBatchJob,
   getOpenRouterSetting,
+  getPersonalDecision,
+  getPersonalWorkspace,
   getThreadMessages,
   listIdeas,
   listBatchJobs,
@@ -23,6 +25,9 @@ import {
   saveOpenRouterSetting,
   processNextBatchItem,
   saveScrapedApp,
+  updatePersonalWorkspace,
+  exportPersonalWorkspace,
+  resetPersonalWorkspace,
 } from "./db";
 
 const category = z.enum(["Tools", "Health", "Education", "AI", "Games"]);
@@ -83,6 +88,30 @@ export const appRouter = router({
       await ensureSeededIdeas();
       return requireDbResult(await getIdeaDetail(input.id), "Idea not found");
     }),
+  }),
+  personal: router({
+    get: protectedProcedure.query(({ ctx }) => getPersonalWorkspace(ctx.user.id)),
+    decision: protectedProcedure.query(({ ctx }) => getPersonalDecision(ctx.user.id)),
+    generate: protectedProcedure.input(z.object({ brief: z.string().min(3).max(2000), mode: z.enum(["generate", "challenge", "market_gap", "keyword"]).default("generate") })).mutation(async ({ ctx, input }) => {
+      const setting = await getOpenRouterSetting(ctx.user.id);
+      if (!setting?.apiKey || !setting.selectedModel) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Configure OpenRouter in Settings first" });
+      const instruction = input.mode === "challenge" ? "Act as a skeptical product strategist. Identify the riskiest assumptions, evidence gaps, likely failure modes, and the smallest validation test." : input.mode === "market_gap" ? "Act as a market-gap researcher. Extract underserved audiences, recurring complaints, missing workflows, and narrow wedges from the user's brief. Separate evidence requests from hypotheses." : input.mode === "keyword" ? "Act as an ASO researcher. Produce a keyword map with user intent, long-tail phrases, competitor language to study, and a practical store-listing experiment plan. Do not invent search volume." : "Generate five focused Android app or game opportunities. For each return title, audience, painful problem, narrow wedge, monetization, MVP in 14 days, and one reason it may fail.";
+      const result = await completeOpenRouter({ apiKey: setting.apiKey, model: setting.selectedModel, messages: [{ role: "system", content: instruction }, { role: "user", content: input.brief }], temperature: 0.7 });
+      return { content: result.content, model: result.model };
+    }),
+    validationGenerate: protectedProcedure.input(z.object({ type: z.enum(["landingCopy", "smokeTest"]), brief: z.string().min(3).max(2000) })).mutation(async ({ ctx, input }) => {
+      const setting = await getOpenRouterSetting(ctx.user.id);
+      if (!setting?.apiKey || !setting.selectedModel) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Configure OpenRouter in Settings first" });
+      const system = input.type === "landingCopy" ? "Create a concise validation landing page draft for a solo app maker. Return a headline, subheadline, three outcome bullets, CTA, and a short trust note. Make claims testable and label assumptions." : "Create a smoke-test plan for a solo Android app maker. Return the hypothesis, audience, channel, experiment setup, success threshold, budget assumption, duration, and what decision follows. Do not invent market data.";
+      const result = await completeOpenRouter({ apiKey: setting.apiKey, model: setting.selectedModel, messages: [{ role: "system", content: system }, { role: "user", content: input.brief }], temperature: 0.55 });
+      const workspace = await getPersonalWorkspace(ctx.user.id);
+      const artifacts = { ...(workspace?.validationArtifacts || {}), [input.type]: result.content, generatedAt: new Date().toISOString() };
+      await updatePersonalWorkspace(ctx.user.id, { validationArtifacts: artifacts });
+      return { ...result, artifacts };
+    }),
+    update: protectedProcedure.input(z.object({ patch: z.record(z.string(), z.unknown()) })).mutation(({ ctx, input }) => updatePersonalWorkspace(ctx.user.id, input.patch)),
+    export: protectedProcedure.query(({ ctx }) => exportPersonalWorkspace(ctx.user.id)),
+    reset: protectedProcedure.mutation(({ ctx }) => resetPersonalWorkspace(ctx.user.id)),
   }),
   scraper: router({
     list: protectedProcedure.query(({ ctx }) => listScrapedApps(ctx.user.id)),

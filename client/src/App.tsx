@@ -4,6 +4,7 @@ import AIWorkspace from "@/pages/AIWorkspace";
 import Compare from "@/pages/Compare";
 import IdeaDetail from "@/pages/IdeaDetail";
 import Ideas from "@/pages/Ideas";
+import PersonalStudio from "@/pages/PersonalStudio";
 import NotFound from "@/pages/NotFound";
 import Scraper from "@/pages/Scraper";
 import Settings from "@/pages/Settings";
@@ -18,6 +19,7 @@ function Router() {
     <Route path="/ideas" component={Ideas} />
     <Route path="/ideas/:id" component={IdeaDetail} />
     <Route path="/compare" component={Compare} />
+    <Route path="/studio" component={PersonalStudio} />
     <Route path="/scraper" component={Scraper} />
     <Route path="/ai" component={AIWorkspace} />
     <Route path="/settings" component={Settings} />
@@ -28,7 +30,7 @@ function Router() {
 
 function App() {
   return <ErrorBoundary>
-    <ThemeProvider defaultTheme="light">
+        <ThemeProvider defaultTheme="light" switchable>
       <TooltipProvider>
         <Toaster />
         <Router />

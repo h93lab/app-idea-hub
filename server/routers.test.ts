@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   ensureSeededIdeas: vi.fn(), getIdeaStats: vi.fn(), listIdeas: vi.fn(), getIdeaDetail: vi.fn(), getIdeasForComparison: vi.fn(),
-  getOpenRouterSetting: vi.fn(), saveOpenRouterSetting: vi.fn(), listScrapedApps: vi.fn(), saveScrapedApp: vi.fn(),
-  createChatMessage: vi.fn(), getThreadMessages: vi.fn(), scrapeStoreApp: vi.fn(), listOpenRouterModels: vi.fn(), completeOpenRouter: vi.fn(), createBatchJob: vi.fn(), getBatchJob: vi.fn(), listBatchJobs: vi.fn(), processNextBatchItem: vi.fn(),
+  getOpenRouterSetting: vi.fn(), getPersonalDecision: vi.fn(), saveOpenRouterSetting: vi.fn(), listScrapedApps: vi.fn(), saveScrapedApp: vi.fn(),
+  createChatMessage: vi.fn(), getThreadMessages: vi.fn(), scrapeStoreApp: vi.fn(), listOpenRouterModels: vi.fn(), completeOpenRouter: vi.fn(), createBatchJob: vi.fn(), getBatchJob: vi.fn(), listBatchJobs: vi.fn(), processNextBatchItem: vi.fn(), getPersonalWorkspace: vi.fn(), updatePersonalWorkspace: vi.fn(), exportPersonalWorkspace: vi.fn(), resetPersonalWorkspace: vi.fn(),
 }));
 
 vi.mock("./db", () => mocks);
@@ -33,6 +33,11 @@ beforeEach(() => {
   mocks.getBatchJob.mockResolvedValue({ id: 8, userId: 7, status: "processing", totalCount: 2, successCount: 1, failedCount: 0, items: [] });
   mocks.listBatchJobs.mockResolvedValue([{ id: 8, userId: 7, status: "completed", totalCount: 2, successCount: 2, failedCount: 0 }]);
   mocks.processNextBatchItem.mockResolvedValue({ id: 8, userId: 7, status: "processing", totalCount: 2, successCount: 1, failedCount: 0, items: [] });
+  mocks.getPersonalDecision.mockResolvedValue({ score: 36, recommendation: "Keep in inbox", completed: 0, totalChecks: 5, validationRatio: 0, gross: 180, afterStoreFee: 153, net: 83, financialScore: 100 });
+  mocks.getPersonalWorkspace.mockResolvedValue({ userId: 7, status: "Inbox", customScore: 72, validationChecklist: [], validationArtifacts: {}, flutterBlueprint: {}, financialModel: {}, asoMetadata: {}, backlogTasks: [] });
+  mocks.updatePersonalWorkspace.mockResolvedValue({ userId: 7, status: "Validating", customScore: 80, validationChecklist: [], flutterBlueprint: {}, financialModel: {}, asoMetadata: {}, backlogTasks: [] });
+  mocks.exportPersonalWorkspace.mockResolvedValue({ exportedAt: new Date().toISOString(), workspace: { userId: 7 } });
+  mocks.resetPersonalWorkspace.mockResolvedValue({ userId: 7, status: "Inbox", customScore: 0, validationChecklist: [], flutterBlueprint: {}, financialModel: {}, asoMetadata: {}, backlogTasks: [] });
   mocks.getThreadMessages.mockResolvedValue([{ id: 1, threadId: 55, role: "user", content: "How do I validate?", model: "test/model", createdAt: new Date() }]);
   mocks.completeOpenRouter.mockResolvedValue({ content: "Validate with ten interviews.", model: "test/model" });
 });
@@ -91,6 +96,35 @@ describe("scraper procedures", () => {
     const result = await caller().scraper.list();
     expect(result[0]?.userId).toBe(7);
     expect(mocks.listScrapedApps).toHaveBeenCalledWith(7);
+  });
+});
+
+describe("personal workspace procedures", () => {
+  it("returns the backend decision engine result", async () => {
+    const result = await caller().personal.decision();
+    expect(result?.recommendation).toBe("Keep in inbox");
+    expect(mocks.getPersonalDecision).toHaveBeenCalledWith(7);
+  });
+
+  it("loads, updates, and exports the private workspace", async () => {
+    expect((await caller().personal.get())?.customScore).toBe(72);
+    expect((await caller().personal.update({ patch: { customScore: 80, status: "Validating" } }))?.status).toBe("Validating");
+    expect((await caller().personal.export()).workspace).toEqual({ userId: 7 });
+    expect((await caller().personal.reset()).status).toBe("Inbox");
+    expect(mocks.updatePersonalWorkspace).toHaveBeenCalledWith(7, { customScore: 80, status: "Validating" });
+    expect(mocks.resetPersonalWorkspace).toHaveBeenCalledWith(7);
+  });
+
+  it("persists generated Validation Lab artifacts", async () => {
+    const result = await caller().personal.validationGenerate({ type: "smokeTest", brief: "Test a contractor workflow" });
+    expect(result.content).toContain("ten interviews");
+    expect(mocks.updatePersonalWorkspace).toHaveBeenCalledWith(7, expect.objectContaining({ validationArtifacts: expect.objectContaining({ smokeTest: "Validate with ten interviews." }) }));
+  });
+
+  it("routes personal AI ideation through the selected OpenRouter model", async () => {
+    const result = await caller().personal.generate({ brief: "Offline-first utility for contractors", mode: "challenge" });
+    expect(result.content).toContain("ten interviews");
+    expect(mocks.completeOpenRouter).toHaveBeenCalledWith(expect.objectContaining({ model: "test/model", messages: expect.arrayContaining([expect.objectContaining({ role: "user" })]) }));
   });
 });
 

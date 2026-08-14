@@ -8,6 +8,7 @@ import {
   batchJobs,
   batchJobItems,
   openRouterSettings,
+  personalWorkspaces,
   scrapedAppReviews,
   scrapedApps,
   scrapedAppScreenshots,
@@ -292,4 +293,70 @@ export async function processNextBatchItem(userId: number, batchId: number) {
   return getBatchJob(userId, batchId);
 }
 
-export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems };
+const defaultPersonalWorkspace = {
+  status: "Inbox" as const,
+  validationChecklist: ["Define the problem in one sentence", "Interview 5 target users", "Review 3 direct competitors", "Test willingness to pay", "Choose build / park decision"],
+  validationArtifacts: {},
+  flutterBlueprint: {},
+  financialModel: { price: 9, monthlyDownloads: 1000, conversionRate: 2, storeFee: 15, monthlyInfra: 50, monthlyAiCost: 20, monthlyMarketing: 0 },
+  asoMetadata: { title: "", shortDescription: "", longDescription: "", keywords: [], releaseNotes: "" },
+  backlogTasks: [],
+};
+
+export async function getPersonalWorkspace(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  let row = (await db.select().from(personalWorkspaces).where(eq(personalWorkspaces.userId, userId)).limit(1))[0];
+  if (!row) {
+    await db.insert(personalWorkspaces).values({ userId, ...defaultPersonalWorkspace });
+    row = (await db.select().from(personalWorkspaces).where(eq(personalWorkspaces.userId, userId)).limit(1))[0];
+  }
+  return row;
+}
+
+export async function updatePersonalWorkspace(userId: number, patch: Record<string, unknown>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await getPersonalWorkspace(userId);
+  await db.update(personalWorkspaces).set({ ...patch, updatedAt: new Date() }).where(eq(personalWorkspaces.userId, userId));
+  return getPersonalWorkspace(userId);
+}
+
+export async function exportPersonalWorkspace(userId: number) {
+  const workspace = await getPersonalWorkspace(userId);
+  return { exportedAt: new Date().toISOString(), workspace };
+}
+
+export async function getPersonalDecision(userId: number) {
+  const workspace = await getPersonalWorkspace(userId);
+  if (!workspace) return undefined;
+  const checklist = workspace.validationChecklist || [];
+  const completed = checklist.filter(item => item.startsWith("✓ ")).length;
+  const validationRatio = checklist.length ? completed / checklist.length : 0;
+  const finance = (workspace.financialModel || {}) as Record<string, number>;
+  const gross = (finance.monthlyDownloads || 0) * (finance.conversionRate || 0) / 100 * (finance.price || 0);
+  const afterStoreFee = gross * (1 - (finance.storeFee || 0) / 100);
+  const net = afterStoreFee - (finance.monthlyInfra || 0) - (finance.monthlyAiCost || 0) - (finance.monthlyMarketing || 0);
+  const expenses = Math.max(1, (finance.monthlyInfra || 0) + (finance.monthlyAiCost || 0) + (finance.monthlyMarketing || 0));
+  const financialScore = Math.max(0, Math.min(100, 50 + (net / expenses) * 50));
+  const score = Math.round((workspace.customScore || 0) * 0.55 + validationRatio * 100 * 0.25 + financialScore * 0.2);
+  const recommendation = score >= 75 && completed >= 3 && net >= 0 ? "Build a narrow MVP" : score >= 50 ? "Validate one assumption next" : "Keep in inbox";
+  return { score, recommendation, completed, totalChecks: checklist.length, validationRatio, gross, afterStoreFee, net, financialScore };
+}
+
+export async function resetPersonalWorkspace(userId: number) {
+  return updatePersonalWorkspace(userId, {
+    status: defaultPersonalWorkspace.status,
+    customNotes: "",
+    customScore: 0,
+    decisionLog: "",
+    validationChecklist: defaultPersonalWorkspace.validationChecklist,
+    validationArtifacts: defaultPersonalWorkspace.validationArtifacts,
+    flutterBlueprint: defaultPersonalWorkspace.flutterBlueprint,
+    financialModel: defaultPersonalWorkspace.financialModel,
+    asoMetadata: defaultPersonalWorkspace.asoMetadata,
+    backlogTasks: defaultPersonalWorkspace.backlogTasks,
+  });
+}
+
+export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems, personalWorkspaces };

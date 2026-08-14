@@ -173,3 +173,20 @@ export const batchJobItems = mysqlTable("batchJobItems", {
 
 export type BatchJob = typeof batchJobs.$inferSelect;
 export type BatchJobItem = typeof batchJobItems.$inferSelect;
+
+export const personalWorkspaces = mysqlTable("personalWorkspaces", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  status: mysqlEnum("status", ["Inbox", "Researching", "Validating", "Building", "Live", "Parked", "Rejected"]).default("Inbox").notNull(),
+  ideaId: int("ideaId"),
+  customNotes: text("customNotes"),
+  customScore: int("customScore"),
+  decisionLog: text("decisionLog"),
+  validationChecklist: json("validationChecklist").$type<string[]>().notNull(),
+  validationArtifacts: json("validationArtifacts").$type<{ landingCopy?: string; smokeTest?: string; generatedAt?: string }>().notNull(),
+  flutterBlueprint: json("flutterBlueprint").$type<Record<string, any>>().notNull(),
+  financialModel: json("financialModel").$type<Record<string, any>>().notNull(),
+  asoMetadata: json("asoMetadata").$type<Record<string, any>>().notNull(),
+  backlogTasks: json("backlogTasks").$type<Array<{ id: string; title: string; status: "todo" | "in_progress" | "done"; hours: number }>>().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({ userIdx: index("personal_workspaces_user_idx").on(table.userId) }));

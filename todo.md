@@ -1,40 +1,15 @@
-# App Idea Hub TODO
+# App Idea Hub - Personal Platform TODO
 
-- [x] Design database schema for ideas, competitors, scraper items, and openrouter settings
-- [x] Seed database with 200 comprehensive app and game ideas with 3 competitors each
-- [x] Implement backend tRPC routers for ideas filtering, search, and details
-- [x] Implement AppScraper engine for Google Play and App Store links
-- [x] Implement OpenRouter settings and AI analysis/chat integration
-- [x] Build Main Dashboard with statistics and quick actions using shadcn/ui
-- [x] Build Ideas Explorer page with search, filters, and categories
-- [x] Build Idea Detail page with competitors, implementation plan, and AI chat
-- [x] Build AppScraper tool interface and saved scraped apps view
-- [x] Build OpenRouter settings page and model selector
-- [x] Add Vitest tests for tRPC procedures and scraper
-- [x] Create Dockerfile, docker-compose.yml, and deployment guide
-- [x] Replace shared competitor templates with idea-specific competitor records for all 200 seeded ideas
-- [x] Make AppScraper re-scrapes idempotent and surface review-fetch status
-- [x] Render stored implementation plans and visible AI message history on idea pages
-- [x] Show actual scraped screenshots and review excerpts in the saved listings UI
-- [x] Add Vitest coverage for new ideas, scraper, and AI tRPC procedures plus scraper persistence replacement behavior
-- [x] Generate explicit distinct competitor selections and details for every one of the 200 ideas
-- [x] Add Vitest coverage for scraper listing plus AI settings and history procedures
-- [x] Generate a concrete 600-row per-idea competitor catalog from the rotated selections and persist it as seed source data
-- [x] Add Vitest coverage for AI analyzeIdea and dashboard bootstrap/stats procedures
-
-# Platform Expansion TODO
-- [x] Add database schema and tRPC router for batch import jobs and items
-- [x] Build side-by-side idea and competitor comparison view
-- [x] Build batch URL import workspace with background processing simulation and progress tracking
-- [x] Implement Markdown and formatted PDF report export for ideas and competitor analyses
-- [x] Add Vitest coverage for comparison, batch import, and export procedures
-- [x] Implement server-side automatic batch progression for background imports
-- [x] Add Vitest tests for Markdown and PDF report download endpoints
-- [x] Implement asynchronous background queueing for batch jobs with observable progress
-- [x] Add integration tests for Express report download routes
-- [x] Add explicit HTTP-level route tests using node http client for report downloads
-- [x] Add comprehensive HTTP-level tests for actual idea and comparison report routes
-- [x] Add PDF and comparison route coverage to real HTTP integration tests
-- [x] Add PDF comparison and invalid-format HTTP route integration tests
-- [x] Add comparison invalid-format and content-disposition header HTTP tests
-- [x] Add content-disposition header assertion for comparison report downloads
+- [x] Add personal fields and tables for decisions, validation checklists, financial models, and Flutter blueprints
+- [x] Implement personal decision log and scoring engine in backend
+- [x] Build Validation Lab workspace for interview guides, landing copy, and smoke tests
+- [x] Build Flutter Blueprint generator and Claude Code prompt builder
+- [x] Build Financial Model simulator and ASO workspace
+- [x] Build Personal Backlog and execution kanban
+- [x] Add Black AMOLED theme and toggle with persistent state
+- [x] Add backup, JSON/Markdown export, and data reset tools
+- [x] Add comprehensive test suite for personal tools and AMOLED styling
+- [x] Implement a backend scoring and decision engine derived from validation and financial inputs
+- [x] Add persisted landing-copy generation and smoke-test planning to Validation Lab
+- [x] Add Personal Studio UI-flow and Black AMOLED theme behavior tests
+- [x] Add executed UI tests for Personal Studio flows and runtime AMOLED class persistence

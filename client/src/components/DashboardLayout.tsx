@@ -21,15 +21,17 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BookOpen, Bot, Database, GitCompareArrows, LayoutDashboard, LogOut, PanelLeft, Settings2, UploadCloud } from "lucide-react";
+import { BookOpen, Bot, Database, GitCompareArrows, LayoutDashboard, LogOut, Moon, MoonStar, PanelLeft, Settings2, Sun, UploadCloud } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { useTheme } from "@/contexts/ThemeContext";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/" },
   { icon: BookOpen, label: "Idea library", path: "/ideas" },
+  { icon: MoonStar, label: "Personal studio", path: "/studio" },
   { icon: GitCompareArrows, label: "Compare ideas", path: "/compare" },
   { icon: Database, label: "AppScraper", path: "/scraper" },
   { icon: Bot, label: "AI workspace", path: "/ai" },
@@ -109,6 +111,9 @@ function DashboardLayoutContent({
   setSidebarWidth,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : MoonStar;
+  const themeLabel = theme === "amoled" ? "Black AMOLED" : theme === "dark" ? "Dark mode" : "Light mode";
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -204,6 +209,7 @@ function DashboardLayoutContent({
           </SidebarContent>
 
           <SidebarFooter className="p-3">
+            <Button variant="ghost" onClick={() => toggleTheme?.()} className="mb-2 w-full justify-start gap-3 text-muted-foreground group-data-[collapsible=icon]:justify-center" aria-label={`Switch theme. Current: ${themeLabel}`} title={themeLabel}><ThemeIcon className="h-4 w-4" /><span className="group-data-[collapsible=icon]:hidden">{themeLabel}</span></Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
