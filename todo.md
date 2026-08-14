@@ -102,3 +102,6 @@
 - [x] Add portfolio decision-history persistence and timeline rendering
 - [x] Expose post-launch learnings and notes editing
 - [x] Add UI tests for FounderCockpit interactions and persistence flows
+
+# GitHub Export
+- [ ] Export the complete App Idea Hub project to a private GitHub repository and verify the uploaded contents
