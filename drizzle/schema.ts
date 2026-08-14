@@ -139,6 +139,7 @@ export type ScrapedApp = typeof scrapedApps.$inferSelect;
 export type CompetitorMonitor = typeof competitorMonitors.$inferSelect;
 export type CompetitorRatingHistory = typeof competitorRatingHistory.$inferSelect;
 export type KeywordExplorer = typeof keywordExplorers.$inferSelect;
+export type MarketingDescriptionArchive = typeof marketingDescriptionArchives.$inferSelect;
 export type OpenRouterSetting = typeof openRouterSettings.$inferSelect;
 export type IdeaChatMessage = typeof ideaChatMessages.$inferSelect;
 
@@ -239,3 +240,20 @@ export const keywordExplorers = mysqlTable("keyword_explorers", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => ({ userIdx: index("keyword_explorers_user_idx").on(table.userId) }));
+
+export const marketingDescriptionArchives = mysqlTable("marketing_description_archives", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  keywordExplorerId: int("keywordExplorerId"),
+  appName: varchar("appName", { length: 220 }).notNull(),
+  audience: varchar("audience", { length: 300 }).notNull(),
+  keyword: varchar("keyword", { length: 128 }).notNull(),
+  tone: varchar("tone", { length: 40 }).notNull(),
+  language: varchar("language", { length: 40 }).notNull(),
+  description: text("description").notNull(),
+  model: varchar("model", { length: 220 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  userIdx: index("marketing_description_archives_user_idx").on(table.userId, table.createdAt),
+  keywordIdx: index("marketing_description_archives_keyword_idx").on(table.keywordExplorerId),
+}));

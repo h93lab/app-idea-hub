@@ -12,6 +12,7 @@ import {
   competitorMonitors,
   competitorRatingHistory,
   keywordExplorers,
+  marketingDescriptionArchives,
   scrapedAppReviews,
   scrapedApps,
   scrapedAppScreenshots,
@@ -362,7 +363,7 @@ export async function resetPersonalWorkspace(userId: number) {
   });
 }
 
-export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems, personalWorkspaces, competitorMonitors, competitorRatingHistory, keywordExplorers };
+export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems, personalWorkspaces, competitorMonitors, competitorRatingHistory, keywordExplorers, marketingDescriptionArchives };
 
 export async function listCompetitorMonitors(userId: number) {
   const db = await getDb();
@@ -443,14 +444,36 @@ export async function listCompetitorRatingHistory(userId: number) {
   return rows;
 }
 
-export async function saveKeywordMarketingDescription(userId: number, keywordExplorerId: number, description: string, model: string) {
+export async function saveKeywordMarketingDescription(userId: number, keywordExplorerId: number, payload: { description: string; model: string; appName: string; audience: string; tone: string; language: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const existing = (await db.select().from(keywordExplorers).where(and(eq(keywordExplorers.id, keywordExplorerId), eq(keywordExplorers.userId, userId))).limit(1))[0];
   if (!existing) throw new Error("Keyword exploration not found");
   const generatedAt = new Date();
-  await db.update(keywordExplorers).set({ marketingDescription: description, marketingModel: model, marketingGeneratedAt: generatedAt, updatedAt: generatedAt }).where(and(eq(keywordExplorers.id, keywordExplorerId), eq(keywordExplorers.userId, userId)));
-  return (await db.select().from(keywordExplorers).where(eq(keywordExplorers.id, keywordExplorerId)).limit(1))[0];
+  await db.update(keywordExplorers).set({ marketingDescription: payload.description, marketingModel: payload.model, marketingGeneratedAt: generatedAt, updatedAt: generatedAt }).where(and(eq(keywordExplorers.id, keywordExplorerId), eq(keywordExplorers.userId, userId)));
+  const inserted = await db.insert(marketingDescriptionArchives).values({ userId, keywordExplorerId, appName: payload.appName.trim(), audience: payload.audience.trim(), keyword: existing.keyword, tone: payload.tone, language: payload.language, description: payload.description, model: payload.model, createdAt: generatedAt });
+  const archiveId = Number(inserted[0]?.insertId);
+  const archive = archiveId ? (await db.select().from(marketingDescriptionArchives).where(and(eq(marketingDescriptionArchives.id, archiveId), eq(marketingDescriptionArchives.userId, userId))).limit(1))[0] : undefined;
+  return { explorer: (await db.select().from(keywordExplorers).where(eq(keywordExplorers.id, keywordExplorerId)).limit(1))[0], archive };
+}
+
+export async function listMarketingDescriptionArchives(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(marketingDescriptionArchives).where(eq(marketingDescriptionArchives.userId, userId)).orderBy(desc(marketingDescriptionArchives.createdAt), desc(marketingDescriptionArchives.id));
+}
+
+export async function getMarketingDescriptionArchive(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(marketingDescriptionArchives).where(and(eq(marketingDescriptionArchives.userId, userId), eq(marketingDescriptionArchives.id, id))).limit(1))[0];
+}
+
+export async function deleteMarketingDescriptionArchive(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.delete(marketingDescriptionArchives).where(and(eq(marketingDescriptionArchives.userId, userId), eq(marketingDescriptionArchives.id, id)));
+  return { deleted: true };
 }
 
 export async function saveKeywordExplorer(userId: number, payload: { keyword: string; searchVolume?: number; difficulty?: number; cpiEstimate?: string | null; competitorCount?: number; notes?: string; analysis?: string | null }) {

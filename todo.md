@@ -25,3 +25,13 @@
 - [x] Add AI marketing description generator in Keyword Explorer
 - [x] Add competitor rating history tracking table and Recharts timeline visualization
 - [x] Add Vitest tests for the new features and verify build
+
+# Latest User Requests TODO
+- [x] Add marketing description archive and comparison list
+- [x] Add time range filters (e.g., last 7 days, last 30 days, all time) to rating history chart
+- [x] Add TXT and PDF export options for generated marketing descriptions
+- [x] Add Vitest tests and verify build
+
+# Follow-up Gap Resolution TODO
+- [x] Make the marketing archive fully browsable beyond the first 12 records
+- [x] Add a UI test proving older archive records remain available for comparison

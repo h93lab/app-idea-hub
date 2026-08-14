@@ -7,11 +7,11 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { ensureSeededIdeas, getIdeaDetail, getIdeasForComparison, getPersonalWorkspace } from "../db";
+import { ensureSeededIdeas, getIdeaDetail, getIdeasForComparison, getPersonalWorkspace, getMarketingDescriptionArchive } from "../db";
 import { streamFlutterBlueprintZip } from "../flutterBlueprint";
 import { refreshCompetitorMonitorByTaskUid } from "../competitorMonitoring";
 import { sdk } from "./sdk";
-import { comparisonToMarkdown, ideaToMarkdown, streamReportPdf } from "../reports";
+import { comparisonToMarkdown, ideaToMarkdown, marketingDescriptionToMarkdown, streamReportPdf } from "../reports";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -85,6 +85,18 @@ async function startServer() {
       const workspace = await getPersonalWorkspace(user.id);
       if (!workspace?.flutterBlueprint || Object.keys(workspace.flutterBlueprint).length === 0) return res.status(404).json({ error: "Generate a Flutter blueprint first" });
       return streamFlutterBlueprintZip(res, workspace.flutterBlueprint);
+    } catch (error) {
+      return res.status(401).json({ error: error instanceof Error ? error.message : "Authentication required" });
+    }
+  });
+  app.get("/api/exports/marketing-description/:id.pdf", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: "Invalid marketing description ID" });
+      const archive = await getMarketingDescriptionArchive(user.id, id);
+      if (!archive) return res.status(404).json({ error: "Marketing description not found" });
+      return streamReportPdf(res, `marketing-description-${id}.pdf`, archive.appName, marketingDescriptionToMarkdown(archive));
     } catch (error) {
       return res.status(401).json({ error: error instanceof Error ? error.message : "Authentication required" });
     }

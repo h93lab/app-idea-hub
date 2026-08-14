@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   ensureSeededIdeas: vi.fn(), getIdeaStats: vi.fn(), listIdeas: vi.fn(), getIdeaDetail: vi.fn(), getIdeasForComparison: vi.fn(),
-  getOpenRouterSetting: vi.fn(), getPersonalDecision: vi.fn(), saveOpenRouterSetting: vi.fn(), listScrapedApps: vi.fn(), saveScrapedApp: vi.fn(), listCompetitorMonitors: vi.fn(), listCompetitorRatingHistory: vi.fn(), getCompetitorMonitor: vi.fn(), createCompetitorMonitor: vi.fn(), setCompetitorMonitorSchedule: vi.fn(), deleteCompetitorMonitor: vi.fn(), recordCompetitorMonitorCheck: vi.fn(), listKeywordExplorers: vi.fn(), getKeywordExplorer: vi.fn(), saveKeywordExplorer: vi.fn(), saveKeywordMarketingDescription: vi.fn(), getKeywordStoreSignals: vi.fn(),
+  getOpenRouterSetting: vi.fn(), getPersonalDecision: vi.fn(), saveOpenRouterSetting: vi.fn(), listScrapedApps: vi.fn(), saveScrapedApp: vi.fn(), listCompetitorMonitors: vi.fn(), listCompetitorRatingHistory: vi.fn(), getCompetitorMonitor: vi.fn(), createCompetitorMonitor: vi.fn(), setCompetitorMonitorSchedule: vi.fn(), deleteCompetitorMonitor: vi.fn(), recordCompetitorMonitorCheck: vi.fn(), listKeywordExplorers: vi.fn(), listMarketingDescriptionArchives: vi.fn(), deleteMarketingDescriptionArchive: vi.fn(), getKeywordExplorer: vi.fn(), saveKeywordExplorer: vi.fn(), saveKeywordMarketingDescription: vi.fn(), getKeywordStoreSignals: vi.fn(),
   createChatMessage: vi.fn(), getThreadMessages: vi.fn(), scrapeStoreApp: vi.fn(), listOpenRouterModels: vi.fn(), completeOpenRouter: vi.fn(), createBatchJob: vi.fn(), getBatchJob: vi.fn(), listBatchJobs: vi.fn(), processNextBatchItem: vi.fn(), getPersonalWorkspace: vi.fn(), updatePersonalWorkspace: vi.fn(), exportPersonalWorkspace: vi.fn(), resetPersonalWorkspace: vi.fn(), refreshCompetitorMonitor: vi.fn(), createHeartbeatJob: vi.fn(), updateHeartbeatJob: vi.fn(), deleteHeartbeatJob: vi.fn(),
 }));
 
@@ -36,10 +36,12 @@ beforeEach(() => {
   mocks.setCompetitorMonitorSchedule.mockResolvedValue({ id: 12, scheduleCronTaskUid: "task-12" });
   mocks.deleteCompetitorMonitor.mockResolvedValue({ deleted: true });
   mocks.listKeywordExplorers.mockResolvedValue([{ id: 21, userId: 7, keyword: "offline invoice", difficulty: 30, competitorCount: 1, searchVolume: 0, cpiEstimate: null, notes: "", analysis: "", marketingDescription: null, marketingModel: null, marketingGeneratedAt: null, createdAt: new Date(), updatedAt: new Date() }]);
+  mocks.listMarketingDescriptionArchives.mockResolvedValue([{ id: 31, userId: 7, keywordExplorerId: 21, appName: "Invoice Pocket", audience: "independent contractors", keyword: "offline invoice", tone: "friendly", language: "English", description: "A focused tool.", model: "test/model", createdAt: new Date() }]);
+  mocks.deleteMarketingDescriptionArchive.mockResolvedValue({ deleted: true });
   mocks.getKeywordExplorer.mockResolvedValue({ id: 21, userId: 7, keyword: "offline invoice", difficulty: 30, competitorCount: 1, searchVolume: 0, cpiEstimate: null, notes: "", analysis: "Use long-tail tests.", marketingDescription: null, marketingModel: null, marketingGeneratedAt: null, createdAt: new Date(), updatedAt: new Date() });
   mocks.getKeywordStoreSignals.mockResolvedValue({ competitorCount: 1, examples: ["Invoice tool"] });
   mocks.saveKeywordExplorer.mockResolvedValue({ id: 21, userId: 7, keyword: "offline invoice", difficulty: 30, competitorCount: 1, searchVolume: 0, cpiEstimate: null, notes: "", analysis: "Use long-tail tests.", marketingDescription: null, marketingModel: null, marketingGeneratedAt: null, createdAt: new Date(), updatedAt: new Date() });
-  mocks.saveKeywordMarketingDescription.mockResolvedValue({ id: 21, keyword: "offline invoice", marketingDescription: "# Offline invoices\n\nA focused tool.", marketingModel: "test/model" });
+  mocks.saveKeywordMarketingDescription.mockResolvedValue({ explorer: { id: 21, keyword: "offline invoice", marketingDescription: "# Offline invoices\n\nA focused tool.", marketingModel: "test/model" }, archive: { id: 31, keyword: "offline invoice", description: "# Offline invoices\n\nA focused tool." } });
   mocks.getOpenRouterSetting.mockResolvedValue({ userId: 7, apiKey: "sk-or-test-key", selectedModel: "test/model", modelLabel: "Test model" });
   mocks.saveOpenRouterSetting.mockResolvedValue({ userId: 7, apiKey: "sk-or-test-key", selectedModel: "test/model", modelLabel: "Test model" });
   mocks.listOpenRouterModels.mockResolvedValue([{ id: "test/model", name: "Test model" }]);
@@ -214,6 +216,14 @@ describe("competitor monitoring and keyword explorer procedures", () => {
 
 
 describe("rating history and marketing description procedures", () => {
+  it("lists and deletes owned marketing archive records", async () => {
+    const archives = await caller().keywords.archives();
+    expect(archives[0]).toMatchObject({ id: 31, appName: "Invoice Pocket", keyword: "offline invoice" });
+    await caller().keywords.deleteArchive({ id: 31 });
+    expect(mocks.listMarketingDescriptionArchives).toHaveBeenCalledWith(7);
+    expect(mocks.deleteMarketingDescriptionArchive).toHaveBeenCalledWith(7, 31);
+  });
+
   it("returns owned competitor rating history points", async () => {
     const result = await caller().monitors.ratingHistory();
     expect(result).toHaveLength(1);
@@ -225,6 +235,6 @@ describe("rating history and marketing description procedures", () => {
     const result = await caller().keywords.generateMarketingDescription({ keywordExplorerId: 21, appName: "Invoice Pocket", audience: "independent contractors", tone: "friendly", language: "English" });
     expect(result.description).toContain("Validate with ten interviews.");
     expect(result.model).toBe("test/model");
-    expect(mocks.saveKeywordMarketingDescription).toHaveBeenCalledWith(7, 21, "Validate with ten interviews.", "test/model");
+    expect(mocks.saveKeywordMarketingDescription).toHaveBeenCalledWith(7, 21, { description: "Validate with ten interviews.", model: "test/model", appName: "Invoice Pocket", audience: "independent contractors", tone: "friendly", language: "English" });
   });
 });

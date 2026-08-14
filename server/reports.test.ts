@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ideaToMarkdown, comparisonToMarkdown } from "./reports";
+import { ideaToMarkdown, comparisonToMarkdown, marketingDescriptionToMarkdown } from "./reports";
 
 describe("reports markdown generation", () => {
   it("generates structured markdown for a single idea", () => {
@@ -14,6 +14,13 @@ describe("reports markdown generation", () => {
     expect(markdown).toContain("# Offline Invoice Builder");
     expect(markdown).toContain("Notion");
     expect(markdown).toContain("Home contractors");
+  });
+
+  it("formats an archived marketing description for export", () => {
+    const markdown = marketingDescriptionToMarkdown({ appName: "Invoice Pocket", audience: "Independent contractors", keyword: "offline invoice", tone: "friendly", language: "English", description: "A clear store draft.", model: "test/model", createdAt: "2026-08-14T00:00:00Z" });
+    expect(markdown).toContain("# Invoice Pocket");
+    expect(markdown).toContain("offline invoice");
+    expect(markdown).toContain("A clear store draft.");
   });
 
   it("generates a comparison table for multiple ideas", () => {

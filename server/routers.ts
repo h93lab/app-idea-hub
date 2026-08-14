@@ -39,6 +39,8 @@ import {
   deleteCompetitorMonitor,
   recordCompetitorMonitorCheck,
   listKeywordExplorers,
+  listMarketingDescriptionArchives,
+  deleteMarketingDescriptionArchive,
   getKeywordExplorer,
   saveKeywordExplorer,
   saveKeywordMarketingDescription,
@@ -175,6 +177,8 @@ export const appRouter = router({
   }),
   keywords: router({
     list: protectedProcedure.query(({ ctx }) => listKeywordExplorers(ctx.user.id)),
+    archives: protectedProcedure.query(({ ctx }) => listMarketingDescriptionArchives(ctx.user.id)),
+    deleteArchive: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => deleteMarketingDescriptionArchive(ctx.user.id, input.id)),
     explore: protectedProcedure.input(z.object({ keyword: z.string().min(2).max(128), context: z.string().max(1000).optional() })).mutation(async ({ ctx, input }) => {
       const keyword = input.keyword.trim();
       const signals = await getKeywordStoreSignals(ctx.user.id, keyword);
@@ -201,8 +205,8 @@ export const appRouter = router({
         { role: "system", content: "You are a mobile app marketing copywriter. Write a clear, differentiated store-ready marketing description using the supplied keyword naturally. Do not invent ratings, downloads, awards, testimonials, customer results, or market statistics. Label any product promise as a positioning hypothesis. Return markdown with a short headline, a 100-150 word description, three benefit bullets, and one CTA. Respect the requested language and tone." },
         { role: "user", content: `App name: ${input.appName}\nAudience: ${input.audience}\nTone: ${input.tone}\nLanguage: ${input.language}\nPrimary keyword: ${exploration.keyword}\nRelated saved listing matches: ${exploration.competitorCount}\nASO analysis: ${exploration.analysis || "No prior analysis"}` },
       ] });
-      const saved = await saveKeywordMarketingDescription(ctx.user.id, input.keywordExplorerId, response.content, response.model);
-      return { description: response.content, model: response.model, record: saved };
+      const saved = await saveKeywordMarketingDescription(ctx.user.id, input.keywordExplorerId, { description: response.content, model: response.model, appName: input.appName, audience: input.audience, tone: input.tone, language: input.language });
+      return { description: response.content, model: response.model, record: saved.explorer, archive: saved.archive };
     }),
   }),
   scraper: router({
