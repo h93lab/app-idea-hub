@@ -59,3 +59,14 @@
 - [x] Clean up remaining non-blue accent classes in PersonalStudio.tsx
 - [x] Add dedicated Vitest test for pre-save draft editing and AI sentiment analysis
 - [x] Run final pnpm check, pnpm test, pnpm build, and capture verification screenshot
+
+# Strict AMOLED & Flat Icon Redesign TODO
+- [x] Enforce pure black background (#000000), dark grey card surfaces (#0b0f17 or #111827), and electric blue accent (#2563eb / #3b82f6) globally across index.css and Tailwind classes
+- [x] Remove all gradients, multi-color badge pills, and colored icon badge backgrounds from Home, PersonalStudio, and DashboardLayout
+- [x] Ensure all icons are flat monochrome or electric blue, with zero colorful circular/rounded badge containers
+- [x] Run pnpm check, pnpm test, pnpm build, and capture verification screenshot
+
+# Whole-App Palette Verification TODO
+- [x] Sweep all user-facing pages and components for remaining multicolor, gradient, white-surface, and colored icon treatments
+- [x] Add deterministic palette verification test/check for forbidden UI classes
+- [x] Re-run pnpm check, pnpm test, pnpm build, and capture fresh screenshots after the full sweep

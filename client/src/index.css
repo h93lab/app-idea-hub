@@ -42,200 +42,177 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
-}
-
-.dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
-  [type="button"]:not(:disabled),
-  [type="submit"]:not(:disabled),
-  [type="reset"]:not(:disabled),
-  a[href],
-  select:not(:disabled),
-  input[type="checkbox"]:not(:disabled),
-  input[type="radio"]:not(:disabled) {
-    @apply cursor-pointer;
-  }
-}
-
-@layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
-  .container {
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
-    padding-right: 1rem;
-  }
-
-  .flex {
-    min-height: 0;
-    min-width: 0;
-  }
-
-  @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
-    }
-  }
-}
-
-/* Black AMOLED mode: pure black surfaces reduce OLED-lit pixels while preserving readable contrast. */
+:root,
+.dark,
 .amoled {
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.94 0.004 65);
-  --card: oklch(0.055 0.004 285.885);
-  --card-foreground: oklch(0.94 0.004 65);
-  --popover: oklch(0.045 0.004 285.885);
-  --popover-foreground: oklch(0.94 0.004 65);
-  --secondary: oklch(0.11 0.008 285.885);
-  --secondary-foreground: oklch(0.86 0.004 65);
-  --muted: oklch(0.095 0.006 285.885);
-  --muted-foreground: oklch(0.7 0.012 286.067);
-  --accent: oklch(0.14 0.018 264.376);
-  --accent-foreground: oklch(0.96 0.004 65);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 17%);
-  --ring: oklch(0.7 0.2 264.376);
-  --sidebar: oklch(0.015 0.002 285.885);
-  --sidebar-foreground: oklch(0.9 0.004 65);
-  --sidebar-accent: oklch(0.1 0.01 264.376);
-  --sidebar-accent-foreground: oklch(0.96 0.004 65);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.7 0.2 264.376);
-}
-
-.amoled body {
-  background: #000;
-}
-
-.amoled {
+  --radius: 0.55rem;
   --background: #000000;
-  --foreground: #f8fafc;
-  --card: #090a0f;
-  --card-foreground: #f8fafc;
-  --popover: #090a0f;
-  --popover-foreground: #f8fafc;
+  --foreground: #f4f7fb;
+  --card: #0b0f17;
+  --card-foreground: #f4f7fb;
+  --popover: #0b0f17;
+  --popover-foreground: #f4f7fb;
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
   --secondary: #111827;
-  --secondary-foreground: #93c5fd;
-  --muted: #0d111a;
+  --secondary-foreground: #dbeafe;
+  --muted: #111827;
   --muted-foreground: #94a3b8;
-  --accent: #1e293b;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
+  --accent: #172554;
+  --accent-foreground: #eff6ff;
+  --destructive: #3b82f6;
   --destructive-foreground: #ffffff;
-  --border: rgba(59, 130, 246, 0.2);
-  --input: rgba(59, 130, 246, 0.25);
+  --border: #1f2937;
+  --input: #1f2937;
   --ring: #3b82f6;
+  --chart-1: #3b82f6;
+  --chart-2: #60a5fa;
+  --chart-3: #2563eb;
+  --chart-4: #1d4ed8;
+  --chart-5: #93c5fd;
   --sidebar: #05070b;
-  --sidebar-foreground: #f8fafc;
+  --sidebar-foreground: #f4f7fb;
   --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #111827;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(59, 130, 246, 0.2);
+  --sidebar-accent-foreground: #dbeafe;
+  --sidebar-border: #1f2937;
   --sidebar-ring: #3b82f6;
-  --chart-1: #60a5fa;
-  --chart-2: #3b82f6;
-  --chart-3: #2563eb;
-  --chart-4: #1d4ed8;
-  --chart-5: #1e40af;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #000000;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  @apply border-border outline-ring/50;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[type="button"]:not(:disabled),
+[type="submit"]:not(:disabled),
+[type="reset"]:not(:disabled),
+a[href],
+select:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled) {
+  @apply cursor-pointer;
+}
+
+.container {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.flex {
+  min-height: 0;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .container { padding-inline: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .container { max-width: 1280px; padding-inline: 2rem; }
+}
+
+/* Strict AMOLED guardrails: no gradients, no shadows that simulate glow, flat monochrome/blue surfaces only. */
+.amoled *,
+.dark * {
+  text-shadow: none;
+}
+
+.amoled .bg-gradient-to-br,
+.amoled .bg-gradient-to-r,
+.amoled .bg-gradient-to-l,
+.dark .bg-gradient-to-br,
+.dark .bg-gradient-to-r,
+.dark .bg-gradient-to-l {
+  background-image: none !important;
+}
+
+.amoled .shadow-xl,
+.amoled .shadow-lg,
+.amoled .shadow-md,
+.dark .shadow-xl,
+.dark .shadow-lg,
+.dark .shadow-md {
+  box-shadow: none;
+}
+
+.amoled ::selection,
+.dark ::selection {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+/* Palette enforcement for legacy utility classes across existing pages. */
+.amoled [class*="bg-violet-"],
+.amoled [class*="bg-cyan-"],
+.amoled [class*="bg-emerald-"],
+.amoled [class*="bg-amber-"],
+.amoled [class*="bg-rose-"],
+.amoled [class*="bg-orange-"],
+.amoled [class*="bg-pink-"],
+.amoled [class*="bg-green-"],
+.amoled [class*="bg-yellow-"],
+.amoled [class*="bg-indigo-"],
+.amoled [class*="bg-purple-"],
+.amoled [class*="bg-teal-"],
+.amoled [class*="bg-white"] {
+  background-color: var(--card) !important;
+  background-image: none !important;
+}
+
+.amoled [class*="text-violet-"],
+.amoled [class*="text-cyan-"],
+.amoled [class*="text-emerald-"],
+.amoled [class*="text-amber-"],
+.amoled [class*="text-rose-"],
+.amoled [class*="text-orange-"],
+.amoled [class*="text-pink-"],
+.amoled [class*="text-green-"],
+.amoled [class*="text-yellow-"],
+.amoled [class*="text-indigo-"],
+.amoled [class*="text-purple-"],
+.amoled [class*="text-teal-"] {
+  color: var(--primary) !important;
+}
+
+.amoled [class*="border-violet-"],
+.amoled [class*="border-cyan-"],
+.amoled [class*="border-emerald-"],
+.amoled [class*="border-amber-"],
+.amoled [class*="border-rose-"],
+.amoled [class*="border-orange-"],
+.amoled [class*="border-pink-"],
+.amoled [class*="border-green-"],
+.amoled [class*="border-yellow-"],
+.amoled [class*="border-indigo-"],
+.amoled [class*="border-purple-"],
+.amoled [class*="border-teal-"],
+.amoled [class*="ring-violet-"],
+.amoled [class*="ring-cyan-"],
+.amoled [class*="ring-emerald-"],
+.amoled [class*="ring-amber-"],
+.amoled [class*="ring-rose-"] {
+  border-color: var(--border) !important;
+  --tw-ring-color: var(--ring) !important;
+}
+
+.amoled [class*="from-"],
+.amoled [class*="via-"],
+.amoled [class*="to-"] {
+  background-image: none !important;
 }
