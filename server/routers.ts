@@ -1,11 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { parse as parseCookie } from "cookie";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { completeOpenRouter, listOpenRouterModels, maskApiKey } from "./openrouter";
-import { scrapeStoreApp } from "./scraper";
+import { parseStoreUrl, scrapeStoreApp } from "./scraper";
+import { refreshCompetitorMonitor } from "./competitorMonitoring";
+import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
 import { comparisonToMarkdown, ideaToMarkdown } from "./reports";
 import {
   createChatMessage,
@@ -28,6 +31,15 @@ import {
   updatePersonalWorkspace,
   exportPersonalWorkspace,
   resetPersonalWorkspace,
+  listCompetitorMonitors,
+  getCompetitorMonitor,
+  createCompetitorMonitor,
+  setCompetitorMonitorSchedule,
+  deleteCompetitorMonitor,
+  recordCompetitorMonitorCheck,
+  listKeywordExplorers,
+  saveKeywordExplorer,
+  getKeywordStoreSignals,
 } from "./db";
 
 const category = z.enum(["Tools", "Health", "Education", "AI", "Games"]);
@@ -112,6 +124,72 @@ export const appRouter = router({
     update: protectedProcedure.input(z.object({ patch: z.record(z.string(), z.unknown()) })).mutation(({ ctx, input }) => updatePersonalWorkspace(ctx.user.id, input.patch)),
     export: protectedProcedure.query(({ ctx }) => exportPersonalWorkspace(ctx.user.id)),
     reset: protectedProcedure.mutation(({ ctx }) => resetPersonalWorkspace(ctx.user.id)),
+  }),
+  monitors: router({
+    list: protectedProcedure.query(({ ctx }) => listCompetitorMonitors(ctx.user.id)),
+    create: protectedProcedure.input(z.object({ appName: z.string().min(2).max(255), sourceUrl: z.string().url() })).mutation(async ({ ctx, input }) => {
+      let parsed;
+      try { parsed = parseStoreUrl(input.sourceUrl); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Use a valid store URL" }); }
+      return createCompetitorMonitor(ctx.user.id, { appName: input.appName, sourceUrl: parsed.normalizedUrl, store: parsed.store });
+    }),
+    check: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const monitor = requireDbResult(await getCompetitorMonitor(ctx.user.id, input.id), "Monitor not found");
+      try { return refreshCompetitorMonitor(monitor); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Unable to refresh competitor" }); }
+    }),
+    schedule: protectedProcedure.input(z.object({ id: z.number().int().positive(), cron: z.string().regex(/^\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+$/, "Use a six-field UTC cron expression") })).mutation(async ({ ctx, input }) => {
+      const monitor = requireDbResult(await getCompetitorMonitor(ctx.user.id, input.id), "Monitor not found");
+      if (monitor.scheduleCronTaskUid) throw new TRPCError({ code: "CONFLICT", message: "This monitor already has a schedule" });
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      if (!sessionToken) throw new TRPCError({ code: "UNAUTHORIZED", message: "A browser session cookie is required to create a background schedule" });
+      const job = await createHeartbeatJob({ name: `competitor-monitor-${monitor.id}`, cron: input.cron, path: "/api/scheduled/competitor-monitor", payload: {}, description: `Refresh ${monitor.appName} and alert when its version or rating changes` }, sessionToken);
+      return setCompetitorMonitorSchedule(ctx.user.id, monitor.id, job.taskUid);
+    }),
+    setEnabled: protectedProcedure.input(z.object({ id: z.number().int().positive(), enabled: z.boolean() })).mutation(async ({ ctx, input }) => {
+      const monitor = requireDbResult(await getCompetitorMonitor(ctx.user.id, input.id), "Monitor not found");
+      if (!monitor.scheduleCronTaskUid) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Schedule this monitor first" });
+      const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+      await updateHeartbeatJob(monitor.scheduleCronTaskUid, { enable: input.enabled }, sessionToken);
+      return getCompetitorMonitor(ctx.user.id, monitor.id);
+    }),
+    removeSchedule: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const monitor = requireDbResult(await getCompetitorMonitor(ctx.user.id, input.id), "Monitor not found");
+      if (monitor.scheduleCronTaskUid) {
+        const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+        await deleteHeartbeatJob(monitor.scheduleCronTaskUid, sessionToken);
+        await setCompetitorMonitorSchedule(ctx.user.id, monitor.id, null);
+      }
+      return getCompetitorMonitor(ctx.user.id, monitor.id);
+    }),
+    remove: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const monitor = requireDbResult(await getCompetitorMonitor(ctx.user.id, input.id), "Monitor not found");
+      if (monitor.scheduleCronTaskUid) {
+        const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+        await deleteHeartbeatJob(monitor.scheduleCronTaskUid, sessionToken);
+      }
+      return deleteCompetitorMonitor(ctx.user.id, monitor.id);
+    }),
+  }),
+  keywords: router({
+    list: protectedProcedure.query(({ ctx }) => listKeywordExplorers(ctx.user.id)),
+    explore: protectedProcedure.input(z.object({ keyword: z.string().min(2).max(128), context: z.string().max(1000).optional() })).mutation(async ({ ctx, input }) => {
+      const keyword = input.keyword.trim();
+      const signals = await getKeywordStoreSignals(ctx.user.id, keyword);
+      const difficulty = Math.min(100, 20 + signals.competitorCount * 10);
+      const notes = `Heuristic only: ${signals.competitorCount} saved store listing match(es) for this keyword. Search volume, CPI, and store ranking data are not connected.`;
+      const setting = await getOpenRouterSetting(ctx.user.id);
+      let analysis = "Configure OpenRouter in Settings to generate a model-assisted ASO brief. The deterministic signals above are still saved.";
+      let model: string | null = null;
+      if (setting?.apiKey && setting.selectedModel) {
+        const response = await completeOpenRouter({ apiKey: setting.apiKey, model: setting.selectedModel, temperature: 0.35, messages: [
+          { role: "system", content: "You are a rigorous ASO strategist for a solo Flutter developer. Analyze intent, long-tail variations, title and short-description experiments, and validation steps. Never invent search volume, CPI, rankings, ratings, reviews, or market facts. Clearly label hypotheses and state when data is unavailable. Return concise markdown." },
+          { role: "user", content: `Keyword: ${keyword}\nSaved listing matches: ${signals.competitorCount}\nMatched listing examples: ${signals.examples.join(", ") || "none"}\nDeveloper context: ${input.context || "solo Android/Flutter app developer"}` },
+        ] });
+        analysis = response.content;
+        model = response.model;
+      }
+      const saved = await saveKeywordExplorer(ctx.user.id, { keyword, difficulty, competitorCount: signals.competitorCount, notes, analysis });
+      return { record: saved, keyword, searchVolume: null, cpiEstimate: null, difficulty, competitorCount: signals.competitorCount, matchedApps: signals.examples, analysis, model, dataQuality: "Search-volume and CPI metrics require a connected ASO data source; no values are fabricated." };
+    }),
   }),
   scraper: router({
     list: protectedProcedure.query(({ ctx }) => listScrapedApps(ctx.user.id)),

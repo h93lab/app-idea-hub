@@ -13,3 +13,9 @@
 - [x] Add persisted landing-copy generation and smoke-test planning to Validation Lab
 - [x] Add Personal Studio UI-flow and Black AMOLED theme behavior tests
 - [x] Add executed UI tests for Personal Studio flows and runtime AMOLED class persistence
+
+# Feature Expansion TODO
+- [ ] Add competitor monitoring schema and background tracker
+- [ ] Add Keyword Explorer table and search analysis router
+- [ ] Add Flutter Blueprint ZIP export endpoint using archiver
+- [ ] Add Vitest tests for monitor, keywords, and zip export

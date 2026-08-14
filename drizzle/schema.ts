@@ -136,6 +136,8 @@ export type InsertIdea = typeof ideas.$inferInsert;
 export type Competitor = typeof competitors.$inferSelect;
 export type InsertCompetitor = typeof competitors.$inferInsert;
 export type ScrapedApp = typeof scrapedApps.$inferSelect;
+export type CompetitorMonitor = typeof competitorMonitors.$inferSelect;
+export type KeywordExplorer = typeof keywordExplorers.$inferSelect;
 export type OpenRouterSetting = typeof openRouterSettings.$inferSelect;
 export type IdeaChatMessage = typeof ideaChatMessages.$inferSelect;
 
@@ -190,3 +192,35 @@ export const personalWorkspaces = mysqlTable("personalWorkspaces", {
   backlogTasks: json("backlogTasks").$type<Array<{ id: string; title: string; status: "todo" | "in_progress" | "done"; hours: number }>>().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => ({ userIdx: index("personal_workspaces_user_idx").on(table.userId) }));
+
+export const competitorMonitors = mysqlTable("competitor_monitors", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  appName: varchar("appName", { length: 255 }).notNull(),
+  sourceUrl: text("sourceUrl").notNull(),
+  store: varchar("store", { length: 32 }).notNull(),
+  lastVersion: varchar("lastVersion", { length: 64 }),
+  lastRating: varchar("lastRating", { length: 32 }),
+  statusMessage: text("statusMessage"),
+  hasChanges: int("hasChanges").default(0).notNull(),
+  scheduleCronTaskUid: varchar("schedule_cron_task_uid", { length: 65 }),
+  lastCheckedAt: timestamp("lastCheckedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  userIdx: index("competitor_monitors_user_idx").on(table.userId),
+  scheduleIdx: index("competitor_monitors_schedule_idx").on(table.scheduleCronTaskUid),
+}));
+
+export const keywordExplorers = mysqlTable("keyword_explorers", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  keyword: varchar("keyword", { length: 128 }).notNull(),
+  searchVolume: int("searchVolume").default(0).notNull(),
+  difficulty: int("difficulty").default(0).notNull(),
+  cpiEstimate: varchar("cpiEstimate", { length: 32 }),
+  competitorCount: int("competitorCount").default(0).notNull(),
+  notes: text("notes"),
+  analysis: text("analysis"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({ userIdx: index("keyword_explorers_user_idx").on(table.userId) }));

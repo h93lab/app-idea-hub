@@ -2,18 +2,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   ensureSeededIdeas: vi.fn(), getIdeaStats: vi.fn(), listIdeas: vi.fn(), getIdeaDetail: vi.fn(), getIdeasForComparison: vi.fn(),
-  getOpenRouterSetting: vi.fn(), getPersonalDecision: vi.fn(), saveOpenRouterSetting: vi.fn(), listScrapedApps: vi.fn(), saveScrapedApp: vi.fn(),
-  createChatMessage: vi.fn(), getThreadMessages: vi.fn(), scrapeStoreApp: vi.fn(), listOpenRouterModels: vi.fn(), completeOpenRouter: vi.fn(), createBatchJob: vi.fn(), getBatchJob: vi.fn(), listBatchJobs: vi.fn(), processNextBatchItem: vi.fn(), getPersonalWorkspace: vi.fn(), updatePersonalWorkspace: vi.fn(), exportPersonalWorkspace: vi.fn(), resetPersonalWorkspace: vi.fn(),
+  getOpenRouterSetting: vi.fn(), getPersonalDecision: vi.fn(), saveOpenRouterSetting: vi.fn(), listScrapedApps: vi.fn(), saveScrapedApp: vi.fn(), listCompetitorMonitors: vi.fn(), getCompetitorMonitor: vi.fn(), createCompetitorMonitor: vi.fn(), setCompetitorMonitorSchedule: vi.fn(), deleteCompetitorMonitor: vi.fn(), recordCompetitorMonitorCheck: vi.fn(), listKeywordExplorers: vi.fn(), saveKeywordExplorer: vi.fn(), getKeywordStoreSignals: vi.fn(),
+  createChatMessage: vi.fn(), getThreadMessages: vi.fn(), scrapeStoreApp: vi.fn(), listOpenRouterModels: vi.fn(), completeOpenRouter: vi.fn(), createBatchJob: vi.fn(), getBatchJob: vi.fn(), listBatchJobs: vi.fn(), processNextBatchItem: vi.fn(), getPersonalWorkspace: vi.fn(), updatePersonalWorkspace: vi.fn(), exportPersonalWorkspace: vi.fn(), resetPersonalWorkspace: vi.fn(), refreshCompetitorMonitor: vi.fn(), createHeartbeatJob: vi.fn(), updateHeartbeatJob: vi.fn(), deleteHeartbeatJob: vi.fn(),
 }));
 
 vi.mock("./db", () => mocks);
-vi.mock("./scraper", () => ({ scrapeStoreApp: mocks.scrapeStoreApp }));
+vi.mock("./scraper", () => ({ scrapeStoreApp: mocks.scrapeStoreApp, parseStoreUrl: (sourceUrl: string) => ({ store: "google_play", externalId: "com.test", normalizedUrl: "https://play.google.com/store/apps/details?id=com.test" }) }));
 vi.mock("./openrouter", () => ({ listOpenRouterModels: mocks.listOpenRouterModels, completeOpenRouter: mocks.completeOpenRouter, maskApiKey: (key: string) => `masked-${key.slice(-4)}` }));
+vi.mock("./competitorMonitoring", () => ({ refreshCompetitorMonitor: mocks.refreshCompetitorMonitor }));
+vi.mock("./_core/heartbeat", () => ({ createHeartbeatJob: mocks.createHeartbeatJob, updateHeartbeatJob: mocks.updateHeartbeatJob, deleteHeartbeatJob: mocks.deleteHeartbeatJob }));
 
 import { appRouter } from "./routers";
 
 const user = { id: 7, openId: "test-user", email: "test@example.com", name: "Test User", loginMethod: "test", role: "user", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
-const caller = () => appRouter.createCaller({ user, req: {} as any, res: { clearCookie: vi.fn() } as any });
+const caller = (req: any = {}) => appRouter.createCaller({ user, req, res: { clearCookie: vi.fn() } as any });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -23,6 +25,18 @@ beforeEach(() => {
   mocks.getIdeaDetail.mockResolvedValue({ id: 1, title: "Test idea", category: "Tools", summary: "Summary", targetAudience: "Users", problem: "Problem", solution: "Solution", uniqueValue: "Unique", subcategory: "Workflow", competitionLevel: "Low", competitionScore: 25, revenuePotential: "Strong", monetizationModel: "Subscription", mvpScope: "MVP", implementationPlan: "Plan", validationPlan: "Validate", risks: "Risks", competitors: [] });
   mocks.getIdeasForComparison.mockResolvedValue([{ id: 1, title: "Test idea", category: "Tools", summary: "Summary", targetAudience: "Users", problem: "Problem", solution: "Solution", uniqueValue: "Unique", subcategory: "Workflow", competitionLevel: "Low", competitionScore: 25, revenuePotential: "Strong", monetizationModel: "Subscription", mvpScope: "MVP", implementationPlan: "Plan", validationPlan: "Validate", risks: "Risks", competitors: [] }, { id: 2, title: "Second idea", category: "AI", summary: "Summary", targetAudience: "Teams", problem: "Problem", solution: "Solution", uniqueValue: "Unique", subcategory: "AI", competitionLevel: "Medium", competitionScore: 55, revenuePotential: "Very strong", monetizationModel: "Usage-based", mvpScope: "MVP", implementationPlan: "Plan", validationPlan: "Validate", risks: "Risks", competitors: [] }]);
   mocks.listScrapedApps.mockResolvedValue([]);
+  mocks.listCompetitorMonitors.mockResolvedValue([]);
+  mocks.getCompetitorMonitor.mockResolvedValue({ id: 12, userId: 7, appName: "Test app", sourceUrl: "https://play.google.com/store/apps/details?id=com.test", store: "google_play", scheduleCronTaskUid: null, lastVersion: null, lastRating: null, statusMessage: null, hasChanges: 0, lastCheckedAt: new Date(), createdAt: new Date() });
+  mocks.createCompetitorMonitor.mockResolvedValue({ id: 12, userId: 7, appName: "Test app", sourceUrl: "https://play.google.com/store/apps/details?id=com.test", store: "google_play", scheduleCronTaskUid: null, lastVersion: null, lastRating: null, statusMessage: null, hasChanges: 0, lastCheckedAt: new Date(), createdAt: new Date() });
+  mocks.refreshCompetitorMonitor.mockResolvedValue({ changed: false, baselineCaptured: true, statusMessage: "Baseline captured." });
+  mocks.createHeartbeatJob.mockResolvedValue({ taskUid: "task-12" });
+  mocks.updateHeartbeatJob.mockResolvedValue({});
+  mocks.deleteHeartbeatJob.mockResolvedValue(undefined);
+  mocks.setCompetitorMonitorSchedule.mockResolvedValue({ id: 12, scheduleCronTaskUid: "task-12" });
+  mocks.deleteCompetitorMonitor.mockResolvedValue({ deleted: true });
+  mocks.listKeywordExplorers.mockResolvedValue([{ id: 21, userId: 7, keyword: "offline invoice", difficulty: 30, competitorCount: 1, searchVolume: 0, cpiEstimate: null, notes: "", analysis: "", createdAt: new Date(), updatedAt: new Date() }]);
+  mocks.getKeywordStoreSignals.mockResolvedValue({ competitorCount: 1, examples: ["Invoice tool"] });
+  mocks.saveKeywordExplorer.mockResolvedValue({ id: 21, userId: 7, keyword: "offline invoice", difficulty: 30, competitorCount: 1, searchVolume: 0, cpiEstimate: null, notes: "", analysis: "Use long-tail tests.", createdAt: new Date(), updatedAt: new Date() });
   mocks.getOpenRouterSetting.mockResolvedValue({ userId: 7, apiKey: "sk-or-test-key", selectedModel: "test/model", modelLabel: "Test model" });
   mocks.saveOpenRouterSetting.mockResolvedValue({ userId: 7, apiKey: "sk-or-test-key", selectedModel: "test/model", modelLabel: "Test model" });
   mocks.listOpenRouterModels.mockResolvedValue([{ id: "test/model", name: "Test model" }]);
@@ -165,5 +179,32 @@ describe("OpenRouter procedures", () => {
     expect(result).toMatchObject({ threadId: 55, content: "Validate with ten interviews." });
     expect(mocks.completeOpenRouter).toHaveBeenCalledWith(expect.objectContaining({ model: "test/model" }));
     expect(mocks.createChatMessage).toHaveBeenCalledWith(7, 1, "assistant", "Validate with ten interviews.", "test/model");
+  });
+});
+
+
+describe("competitor monitoring and keyword explorer procedures", () => {
+  it("normalizes a store URL, creates a monitor, and runs a manual check", async () => {
+    const created = await caller().monitors.create({ appName: "Test app", sourceUrl: "https://play.google.com/store/apps/details?id=com.test&utm_source=ignored" });
+    expect(created?.id).toBe(12);
+    const checked = await caller().monitors.check({ id: 12 });
+    expect(checked.changed).toBe(false);
+    expect(mocks.createCompetitorMonitor).toHaveBeenCalledWith(7, { appName: "Test app", sourceUrl: "https://play.google.com/store/apps/details?id=com.test", store: "google_play" });
+    expect(mocks.refreshCompetitorMonitor).toHaveBeenCalledWith(expect.objectContaining({ id: 12 }));
+  });
+
+  it("creates a six-field Heartbeat schedule and persists its task UID", async () => {
+    const result = await caller({ headers: { cookie: "app_session_id=session-token" } }).monitors.schedule({ id: 12, cron: "0 0 * * * *" });
+    expect(result?.scheduleCronTaskUid).toBe("task-12");
+    expect(mocks.createHeartbeatJob).toHaveBeenCalledWith(expect.objectContaining({ path: "/api/scheduled/competitor-monitor", cron: "0 0 * * * *" }), "session-token");
+    expect(mocks.setCompetitorMonitorSchedule).toHaveBeenCalledWith(7, 12, "task-12");
+  });
+
+  it("runs Keyword Explorer with saved listing evidence and the configured model", async () => {
+    const result = await caller().keywords.explore({ keyword: "offline invoice", context: "Arabic-speaking contractors" });
+    expect(result).toMatchObject({ keyword: "offline invoice", competitorCount: 1, difficulty: 30, searchVolume: null, cpiEstimate: null, model: "test/model" });
+    expect(result.analysis).toContain("ten interviews");
+    expect(mocks.getKeywordStoreSignals).toHaveBeenCalledWith(7, "offline invoice");
+    expect(mocks.saveKeywordExplorer).toHaveBeenCalledWith(7, expect.objectContaining({ keyword: "offline invoice", competitorCount: 1, difficulty: 30 }));
   });
 });

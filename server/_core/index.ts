@@ -7,7 +7,10 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { ensureSeededIdeas, getIdeaDetail, getIdeasForComparison } from "../db";
+import { ensureSeededIdeas, getIdeaDetail, getIdeasForComparison, getPersonalWorkspace } from "../db";
+import { streamFlutterBlueprintZip } from "../flutterBlueprint";
+import { refreshCompetitorMonitorByTaskUid } from "../competitorMonitoring";
+import { sdk } from "./sdk";
 import { comparisonToMarkdown, ideaToMarkdown, streamReportPdf } from "../reports";
 import { serveStatic, setupVite } from "./vite";
 
@@ -74,6 +77,27 @@ async function startServer() {
       return streamReportPdf(res, "idea-comparison.pdf", "Idea comparison", markdown);
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : "Unable to build comparison report" });
+    }
+  });
+  app.get("/api/exports/flutter-blueprint.zip", async (req, res) => {
+    try {
+      const user = await sdk.authenticateRequest(req);
+      const workspace = await getPersonalWorkspace(user.id);
+      if (!workspace?.flutterBlueprint || Object.keys(workspace.flutterBlueprint).length === 0) return res.status(404).json({ error: "Generate a Flutter blueprint first" });
+      return streamFlutterBlueprintZip(res, workspace.flutterBlueprint);
+    } catch (error) {
+      return res.status(401).json({ error: error instanceof Error ? error.message : "Authentication required" });
+    }
+  });
+  app.post("/api/scheduled/competitor-monitor", async (req, res) => {
+    const requestContext = { url: req.originalUrl, timestamp: new Date().toISOString() };
+    try {
+      const user = await sdk.authenticateRequest(req);
+      if (!user.isCron || !user.taskUid) return res.status(403).json({ error: "cron-only" });
+      const result = await refreshCompetitorMonitorByTaskUid(user.taskUid);
+      return res.json({ ok: true, ...result });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined, context: requestContext });
     }
   });
   // tRPC API

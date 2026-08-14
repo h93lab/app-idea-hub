@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, like, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   competitors,
@@ -9,6 +9,8 @@ import {
   batchJobItems,
   openRouterSettings,
   personalWorkspaces,
+  competitorMonitors,
+  keywordExplorers,
   scrapedAppReviews,
   scrapedApps,
   scrapedAppScreenshots,
@@ -359,4 +361,89 @@ export async function resetPersonalWorkspace(userId: number) {
   });
 }
 
-export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems, personalWorkspaces };
+export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems, personalWorkspaces, competitorMonitors, keywordExplorers };
+
+export async function listCompetitorMonitors(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(competitorMonitors).where(eq(competitorMonitors.userId, userId)).orderBy(desc(competitorMonitors.lastCheckedAt), desc(competitorMonitors.id));
+}
+
+export async function getCompetitorMonitor(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(competitorMonitors).where(and(eq(competitorMonitors.userId, userId), eq(competitorMonitors.id, id))).limit(1))[0];
+}
+
+export async function getCompetitorMonitorByTaskUid(taskUid: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(competitorMonitors).where(eq(competitorMonitors.scheduleCronTaskUid, taskUid)).limit(1))[0];
+}
+
+export async function createCompetitorMonitor(userId: number, payload: { appName: string; sourceUrl: string; store: "google_play" | "app_store" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const inserted = await db.insert(competitorMonitors).values({ userId, appName: payload.appName.trim(), sourceUrl: payload.sourceUrl.trim(), store: payload.store });
+  const id = Number(inserted[0]?.insertId);
+  if (!id) throw new Error("Monitor could not be created");
+  return getCompetitorMonitor(userId, id);
+}
+
+export async function setCompetitorMonitorSchedule(userId: number, id: number, taskUid: string | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(competitorMonitors).set({ scheduleCronTaskUid: taskUid }).where(and(eq(competitorMonitors.userId, userId), eq(competitorMonitors.id, id)));
+  return getCompetitorMonitor(userId, id);
+}
+
+export async function deleteCompetitorMonitor(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.delete(competitorMonitors).where(and(eq(competitorMonitors.userId, userId), eq(competitorMonitors.id, id)));
+  return { deleted: true };
+}
+
+export async function recordCompetitorMonitorCheck(id: number, result: { name?: string; version?: string; rating?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const monitor = (await db.select().from(competitorMonitors).where(eq(competitorMonitors.id, id)).limit(1))[0];
+  if (!monitor) throw new Error("Monitor not found");
+  const changes: string[] = [];
+  const hasBaseline = Boolean(monitor.lastVersion || monitor.lastRating);
+  if (hasBaseline && monitor.lastVersion !== (result.version ?? null)) changes.push(`version ${monitor.lastVersion ?? "unknown"} → ${result.version ?? "unknown"}`);
+  if (hasBaseline && monitor.lastRating !== (result.rating ?? null)) changes.push(`rating ${monitor.lastRating ?? "unknown"} → ${result.rating ?? "unknown"}`);
+  const changed = changes.length > 0;
+  const statusMessage = !hasBaseline ? "Baseline captured. Future checks will report version or rating changes." : changed ? `Detected changes: ${changes.join("; ")}` : "Checked successfully. No version or rating changes detected.";
+  await db.update(competitorMonitors).set({ lastVersion: result.version ?? null, lastRating: result.rating ?? null, statusMessage, hasChanges: changed ? 1 : 0, lastCheckedAt: new Date() }).where(eq(competitorMonitors.id, id));
+  return { monitor: await getCompetitorMonitor(monitor.userId, id), changed, changes, baselineCaptured: !hasBaseline, statusMessage };
+}
+
+export async function listKeywordExplorers(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(keywordExplorers).where(eq(keywordExplorers.userId, userId)).orderBy(desc(keywordExplorers.updatedAt), desc(keywordExplorers.id));
+}
+
+export async function saveKeywordExplorer(userId: number, payload: { keyword: string; searchVolume?: number; difficulty?: number; cpiEstimate?: string | null; competitorCount?: number; notes?: string; analysis?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const keyword = payload.keyword.trim();
+  const existing = (await db.select().from(keywordExplorers).where(and(eq(keywordExplorers.userId, userId), eq(keywordExplorers.keyword, keyword))).orderBy(desc(keywordExplorers.id)).limit(1))[0];
+  const values = { keyword, searchVolume: payload.searchVolume ?? 0, difficulty: payload.difficulty ?? 0, cpiEstimate: payload.cpiEstimate ?? null, competitorCount: payload.competitorCount ?? 0, notes: payload.notes ?? null, analysis: payload.analysis ?? null };
+  if (existing) {
+    await db.update(keywordExplorers).set({ ...values, updatedAt: new Date() }).where(and(eq(keywordExplorers.userId, userId), eq(keywordExplorers.id, existing.id)));
+    return (await db.select().from(keywordExplorers).where(eq(keywordExplorers.id, existing.id)).limit(1))[0];
+  }
+  const inserted = await db.insert(keywordExplorers).values({ userId, ...values });
+  const id = Number(inserted[0]?.insertId);
+  return id ? (await db.select().from(keywordExplorers).where(eq(keywordExplorers.id, id)).limit(1))[0] : undefined;
+}
+
+export async function getKeywordStoreSignals(userId: number, keyword: string) {
+  const db = await getDb();
+  if (!db) return { competitorCount: 0, examples: [] as string[] };
+  const term = `%${keyword.trim()}%`;
+  const matches = await db.select({ name: scrapedApps.name }).from(scrapedApps).where(and(eq(scrapedApps.userId, userId), or(like(scrapedApps.name, term), like(scrapedApps.description, term)))).orderBy(desc(scrapedApps.updatedAt)).limit(10);
+  return { competitorCount: matches.length, examples: matches.map(item => item.name) };
+}
