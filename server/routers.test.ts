@@ -241,3 +241,43 @@ describe("rating history and marketing description procedures", () => {
     expect(mocks.saveKeywordMarketingDescription).toHaveBeenCalledWith(7, 21, { description: "Validate with ten interviews.", model: "test/model", appName: "Invoice Pocket", audience: "independent contractors", tone: "friendly", language: "English" });
   });
 });
+
+
+describe("professional founder tools", () => {
+  it("mines review intelligence and persists the structured result", async () => {
+    mocks.completeOpenRouter.mockResolvedValueOnce({
+      content: JSON.stringify({ complaints: ["Slow sync"], features: ["Offline mode"], sentimentRatio: 72, summary: "Users want reliability." }),
+      model: "test/model",
+    });
+    const result = await caller().professionalTools.reviewIntelligence({ appName: "Test app", reviewsText: "The app is slow to sync. Please add offline mode." });
+    expect(result.sentimentRatio).toBe(72);
+    expect(mocks.updatePersonalWorkspace).toHaveBeenCalledWith(7, { reviewIntelligence: result });
+  });
+
+  it("persists the opportunity score inputs for the decision engine", async () => {
+    const input = { marketDemand: 8, competitionScore: 6, monetizationScore: 9, flutterFeasibility: 8, personalFit: 10, notes: "Strong fit" };
+    const result = await caller().professionalTools.opportunityScore(input);
+    expect(result).toEqual(input);
+    expect(mocks.updatePersonalWorkspace).toHaveBeenCalledWith(7, { opportunityScoring: input });
+  });
+
+  it("generates and persists a Claude Code mission", async () => {
+    mocks.completeOpenRouter.mockResolvedValueOnce({
+      content: JSON.stringify({ promptSummary: "Build an offline invoice app", instructions: "Start with the invoice flow and tests.", prdStatus: "Draft" }),
+      model: "test/model",
+    });
+    const result = await caller().professionalTools.claudeCodeGenerator({ projectTitle: "Invoice Pocket", architectureBrief: "Offline invoices for contractors" });
+    expect(result.prdStatus).toBe("Draft");
+    expect(mocks.updatePersonalWorkspace).toHaveBeenCalledWith(7, { claudeCodeMission: result });
+  });
+});
+
+
+describe("professional workspace persistence", () => {
+  it("saves a typed professional tool payload", async () => {
+    const value = { rankings: [{ keyword: "offline invoice", rank: 12, target: 10 }] };
+    const result = await caller().professionalTools.save({ key: "asoRankTracker", value });
+    expect(result).toEqual({ key: "asoRankTracker", value });
+    expect(mocks.updatePersonalWorkspace).toHaveBeenCalledWith(7, { asoRankTracker: value });
+  });
+});

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BookOpen, Bot, Database, GitCompareArrows, LayoutDashboard, LogOut, MoonStar, PanelLeft, Settings2, UploadCloud } from "lucide-react";
+import { BookOpen, Bot, Compass, Database, GitCompareArrows, LayoutDashboard, LogOut, MoonStar, PanelLeft, Settings2, UploadCloud } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -31,6 +31,7 @@ const menuItems = [
  { icon: LayoutDashboard, label: "Overview", path: "/" },
  { icon: BookOpen, label: "Idea library", path: "/ideas" },
  { icon: MoonStar, label: "Personal studio", path: "/studio" },
+ { icon: Compass, label: "Founder cockpit", path: "/founder-cockpit" },
  { icon: GitCompareArrows, label: "Compare ideas", path: "/compare" },
  { icon: Database, label: "AppScraper", path: "/scraper" },
  { icon: Bot, label: "AI workspace", path: "/ai" },

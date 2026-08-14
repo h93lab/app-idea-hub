@@ -70,3 +70,35 @@
 - [x] Sweep all user-facing pages and components for remaining multicolor, gradient, white-surface, and colored icon treatments
 - [x] Add deterministic palette verification test/check for forbidden UI classes
 - [x] Re-run pnpm check, pnpm test, pnpm build, and capture fresh screenshots after the full sweep
+
+# Professional Founder Toolkit Expansion
+- [x] Add Review Intelligence Miner with recurring complaints, feature requests, sentiment, and evidence notes
+- [x] Add Opportunity Score Map with demand, competition, monetization, feasibility, and personal-fit scoring
+- [x] Add Competitor Feature Gap Analyzer with side-by-side feature matrix
+- [x] Add ASO Rank Tracker and keyword-gap workspace
+- [x] Add Monetization Lab with scenario modeling for subscriptions, ads, and in-app purchases
+- [x] Add Validation Experiment Center with hypotheses, experiments, thresholds, and outcomes
+- [x] Add Build Scope Estimator with MVP breakdown, complexity, time, stack, and risk fields
+- [x] Add Claude Code Mission Control with PRD, task prompts, acceptance criteria, and context export
+- [x] Add Pre-release QA Lab with Flutter test-case generation and device/offline/accessibility coverage
+- [x] Add Launch Readiness Center with store, privacy, analytics, crash-reporting, and launch checklist
+- [x] Add Trend and Seasonality Radar with evidence-backed trends and freshness tracking
+- [x] Add Evidence Vault with source links, notes, dates, and confidence levels
+- [x] Add Idea Portfolio Board with stages, tags, and decision history
+- [x] Add Post-launch Learning Log with metrics, learnings, and next actions
+- [x] Add backend procedures and persistence for every professional tool
+- [x] Build the professional founder cockpit UI in the Black AMOLED design system
+- [x] Add unit and UI tests for the professional tool suite
+- [x] Run type-check, tests, production build, and visual verification for the expanded platform
+
+# Professional Toolkit Gap Closure
+- [x] Add evidence notes to Review Intelligence Miner storage and rendering
+- [x] Implement a side-by-side competitor feature matrix with competitor columns
+- [x] Add keyword-gap workspace tied to ASO records and rank entries
+- [x] Add validation experiment outcome editing and history
+- [x] Add MVP breakdown fields and rendering to Build Scope Estimator
+- [x] Extend Claude Code Mission Control with acceptance criteria and downloadable context export
+- [x] Add generated QA test-case output alongside the manual checklist
+- [x] Add portfolio decision-history persistence and timeline rendering
+- [x] Expose post-launch learnings and notes editing
+- [x] Add UI tests for FounderCockpit interactions and persistence flows

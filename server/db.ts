@@ -305,6 +305,20 @@ const defaultPersonalWorkspace = {
   financialModel: { price: 9, monthlyDownloads: 1000, conversionRate: 2, storeFee: 15, monthlyInfra: 50, monthlyAiCost: 20, monthlyMarketing: 0 },
   asoMetadata: { title: "", shortDescription: "", longDescription: "", keywords: [], releaseNotes: "" },
   backlogTasks: [],
+  reviewIntelligence: { complaints: [], features: [], sentimentRatio: 75 },
+  opportunityScoring: { marketDemand: 8, competitionScore: 7, monetizationScore: 9, flutterFeasibility: 9, personalFit: 8, notes: "" },
+  competitorGapMatrix: { features: [], gaps: [] },
+  asoRankTracker: { rankings: [] },
+  monetizationLab: { models: ["Freemium", "Subscription"], selected: "Subscription", notes: "" },
+  validationExperiments: { experiments: [] },
+  buildEstimator: { mvpWeeks: 4, complexity: "Medium", techStack: ["Flutter", "Supabase", "OpenAI"] },
+  claudeCodeMission: { promptSummary: "", instructions: "", prdStatus: "Draft" },
+  qaLab: { testCases: [] },
+  launchReadiness: { checklist: ["ASO Keywords", "Store Screenshots", "Privacy Policy", "Crash Reporting", "Analytics"] },
+  trendRadar: { trends: [] },
+  evidenceVault: { items: [] },
+  ideaPortfolio: { tags: [], stage: "Inbox" },
+  postLaunchLearning: { metrics: [], notes: "" },
 };
 
 export async function getPersonalWorkspace(userId: number) {
@@ -343,9 +357,12 @@ export async function getPersonalDecision(userId: number) {
   const net = afterStoreFee - (finance.monthlyInfra || 0) - (finance.monthlyAiCost || 0) - (finance.monthlyMarketing || 0);
   const expenses = Math.max(1, (finance.monthlyInfra || 0) + (finance.monthlyAiCost || 0) + (finance.monthlyMarketing || 0));
   const financialScore = Math.max(0, Math.min(100, 50 + (net / expenses) * 50));
-  const score = Math.round((workspace.customScore || 0) * 0.55 + validationRatio * 100 * 0.25 + financialScore * 0.2);
+  const opportunity = (workspace.opportunityScoring || {}) as Record<string, number>;
+  const opportunityInputs = ["marketDemand", "competitionScore", "monetizationScore", "flutterFeasibility", "personalFit"].map(key => Number(opportunity[key] || 0));
+  const opportunityScore = Math.round(opportunityInputs.reduce((sum, value) => sum + value, 0) / Math.max(1, opportunityInputs.length) * 10);
+  const score = Math.round((workspace.customScore || 0) * 0.35 + opportunityScore * 0.25 + validationRatio * 100 * 0.2 + financialScore * 0.2);
   const recommendation = score >= 75 && completed >= 3 && net >= 0 ? "Build a narrow MVP" : score >= 50 ? "Validate one assumption next" : "Keep in inbox";
-  return { score, recommendation, completed, totalChecks: checklist.length, validationRatio, gross, afterStoreFee, net, financialScore };
+  return { score, recommendation, completed, totalChecks: checklist.length, validationRatio, gross, afterStoreFee, net, financialScore, opportunityScore };
 }
 
 export async function resetPersonalWorkspace(userId: number) {
@@ -360,6 +377,20 @@ export async function resetPersonalWorkspace(userId: number) {
     financialModel: defaultPersonalWorkspace.financialModel,
     asoMetadata: defaultPersonalWorkspace.asoMetadata,
     backlogTasks: defaultPersonalWorkspace.backlogTasks,
+    reviewIntelligence: defaultPersonalWorkspace.reviewIntelligence,
+    opportunityScoring: defaultPersonalWorkspace.opportunityScoring,
+    competitorGapMatrix: defaultPersonalWorkspace.competitorGapMatrix,
+    asoRankTracker: defaultPersonalWorkspace.asoRankTracker,
+    monetizationLab: defaultPersonalWorkspace.monetizationLab,
+    validationExperiments: defaultPersonalWorkspace.validationExperiments,
+    buildEstimator: defaultPersonalWorkspace.buildEstimator,
+    claudeCodeMission: defaultPersonalWorkspace.claudeCodeMission,
+    qaLab: defaultPersonalWorkspace.qaLab,
+    launchReadiness: defaultPersonalWorkspace.launchReadiness,
+    trendRadar: defaultPersonalWorkspace.trendRadar,
+    evidenceVault: defaultPersonalWorkspace.evidenceVault,
+    ideaPortfolio: defaultPersonalWorkspace.ideaPortfolio,
+    postLaunchLearning: defaultPersonalWorkspace.postLaunchLearning,
   });
 }
 

@@ -279,6 +279,57 @@ export const appRouter = router({
       return { threadId: thread.threadId, content: response.content, model: response.model };
     }),
   }),
+  professionalTools: router({
+    reviewIntelligence: protectedProcedure.input(z.object({ appName: z.string(), reviewsText: z.string().max(10000), evidenceNotes: z.string().max(4000).optional() })).mutation(async ({ ctx, input }) => {
+      const setting = await getConfiguredOpenRouter(ctx.user.id);
+      const res = await completeOpenRouter({
+        apiKey: setting.apiKey,
+        model: setting.selectedModel,
+        messages: [
+          { role: "system", content: "Analyze the provided app reviews and extract recurring complaints, missing features, and positive sentiments. Return valid JSON only with keys: complaints (array of strings), features (array of strings), sentimentRatio (number 0-100), and summary (string)." },
+          { role: "user", content: `App: ${input.appName}\nReviews:\n${input.reviewsText}\nResearcher evidence notes:\n${input.evidenceNotes || "None provided"}` }
+        ],
+      });
+      let data;
+      try {
+        const clean = res.content.replace(/```json/g, "").replace(/```/g, "").trim();
+        data = JSON.parse(clean);
+      } catch (e) {
+        data = { complaints: ["Parsing error from LLM response"], features: [], sentimentRatio: 50, summary: res.content };
+      }
+      data.evidenceNotes = input.evidenceNotes || "";
+      await updatePersonalWorkspace(ctx.user.id, { reviewIntelligence: data });
+      return data;
+    }),
+    opportunityScore: protectedProcedure.input(z.object({ marketDemand: z.number(), competitionScore: z.number(), monetizationScore: z.number(), flutterFeasibility: z.number(), personalFit: z.number(), notes: z.string().optional() })).mutation(async ({ ctx, input }) => {
+      await updatePersonalWorkspace(ctx.user.id, { opportunityScoring: input });
+      return input;
+    }),
+    save: protectedProcedure.input(z.object({ key: z.enum(["opportunityScoring", "competitorGapMatrix", "asoRankTracker", "monetizationLab", "validationExperiments", "buildEstimator", "claudeCodeMission", "qaLab", "launchReadiness", "trendRadar", "evidenceVault", "ideaPortfolio", "postLaunchLearning"]), value: z.record(z.string(), z.unknown()) })).mutation(async ({ ctx, input }) => {
+      await updatePersonalWorkspace(ctx.user.id, { [input.key]: input.value });
+      return { key: input.key, value: input.value };
+    }),
+    claudeCodeGenerator: protectedProcedure.input(z.object({ projectTitle: z.string(), architectureBrief: z.string() })).mutation(async ({ ctx, input }) => {
+      const setting = await getConfiguredOpenRouter(ctx.user.id);
+      const res = await completeOpenRouter({
+        apiKey: setting.apiKey,
+        model: setting.selectedModel,
+        messages: [
+          { role: "system", content: "Act as an expert Flutter and Claude Code prompt engineer. Generate a comprehensive PRD and step-by-step developer prompt guide for building the Flutter app with Claude Code. Return valid JSON only with keys: promptSummary (string), instructions (string), prdStatus (string)." },
+          { role: "user", content: `Project: ${input.projectTitle}\nBrief: ${input.architectureBrief}` }
+        ],
+      });
+      let data;
+      try {
+        const clean = res.content.replace(/```json/g, "").replace(/```/g, "").trim();
+        data = JSON.parse(clean);
+      } catch (e) {
+        data = { promptSummary: input.projectTitle, instructions: res.content, prdStatus: "Draft" };
+      }
+      await updatePersonalWorkspace(ctx.user.id, { claudeCodeMission: data });
+      return data;
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
