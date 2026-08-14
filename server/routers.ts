@@ -6,16 +6,22 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { completeOpenRouter, listOpenRouterModels, maskApiKey } from "./openrouter";
 import { scrapeStoreApp } from "./scraper";
+import { comparisonToMarkdown, ideaToMarkdown } from "./reports";
 import {
   createChatMessage,
+  createBatchJob,
   ensureSeededIdeas,
   getIdeaDetail,
   getIdeaStats,
+  getIdeasForComparison,
+  getBatchJob,
   getOpenRouterSetting,
   getThreadMessages,
   listIdeas,
+  listBatchJobs,
   listScrapedApps,
   saveOpenRouterSetting,
+  processNextBatchItem,
   saveScrapedApp,
 } from "./db";
 
@@ -52,6 +58,21 @@ export const appRouter = router({
     stats: publicProcedure.query(() => getIdeaStats()),
   }),
   ideas: router({
+    compare: publicProcedure.input(z.object({ ids: z.array(z.number().int().positive()).min(2).max(4) })).query(async ({ input }) => {
+      await ensureSeededIdeas();
+      return getIdeasForComparison(input.ids);
+    }),
+    report: publicProcedure.input(z.object({ id: z.number().int().positive(), format: z.enum(["markdown", "pdf"]) })).query(async ({ input }) => {
+      await ensureSeededIdeas();
+      const idea = requireDbResult(await getIdeaDetail(input.id), "Idea not found");
+      return { title: idea.title, markdown: ideaToMarkdown(idea), format: input.format };
+    }),
+    compareReport: publicProcedure.input(z.object({ ids: z.array(z.number().int().positive()).min(2).max(4), format: z.enum(["markdown", "pdf"]) })).query(async ({ input }) => {
+      await ensureSeededIdeas();
+      const selected = await getIdeasForComparison(input.ids);
+      if (selected.length < 2) throw new TRPCError({ code: "NOT_FOUND", message: "Select at least two ideas" });
+      return { title: "Idea comparison", markdown: comparisonToMarkdown(selected), format: input.format };
+    }),
     list: publicProcedure.input(z.object({
       search: z.string().optional(), category: category.optional(), monetizationModel: monetizationModel.optional(), competitionLevel: competitionLevel.optional(), limit: z.number().int().min(1).max(100).default(50), offset: z.number().int().min(0).default(0),
     }).optional()).query(async ({ input }) => {
@@ -65,6 +86,10 @@ export const appRouter = router({
   }),
   scraper: router({
     list: protectedProcedure.query(({ ctx }) => listScrapedApps(ctx.user.id)),
+    batchList: protectedProcedure.query(({ ctx }) => listBatchJobs(ctx.user.id)),
+    batchGet: protectedProcedure.input(z.object({ batchId: z.number().int().positive() })).query(({ ctx, input }) => getBatchJob(ctx.user.id, input.batchId)),
+    batchCreate: protectedProcedure.input(z.object({ sourceUrls: z.array(z.string().url()).min(1).max(50) })).mutation(({ ctx, input }) => createBatchJob(ctx.user.id, input.sourceUrls)),
+    batchProcessNext: protectedProcedure.input(z.object({ batchId: z.number().int().positive() })).mutation(({ ctx, input }) => processNextBatchItem(ctx.user.id, input.batchId)),
     scrape: protectedProcedure.input(z.object({ sourceUrl: z.string().url() })).mutation(async ({ ctx, input }) => {
       try {
         const result = await scrapeStoreApp(input.sourceUrl);

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BookOpen, Bot, Database, LayoutDashboard, LogOut, PanelLeft, Settings2, UploadCloud } from "lucide-react";
+import { BookOpen, Bot, Database, GitCompareArrows, LayoutDashboard, LogOut, PanelLeft, Settings2, UploadCloud } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -30,6 +30,7 @@ import { Button } from "./ui/button";
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/" },
   { icon: BookOpen, label: "Idea library", path: "/ideas" },
+  { icon: GitCompareArrows, label: "Compare ideas", path: "/compare" },
   { icon: Database, label: "AppScraper", path: "/scraper" },
   { icon: Bot, label: "AI workspace", path: "/ai" },
   { icon: Settings2, label: "Settings", path: "/settings" },

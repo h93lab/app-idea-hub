@@ -149,3 +149,27 @@ export type ScrapedStore = "google_play" | "app_store";
 export type IdeaWithCompetitors = Idea & { competitors: Competitor[] };
 export const schemaVersion = "app-idea-hub-v1" as const;
 export const seedDataVersion = "ideas-200-v1" as const;
+
+export const batchJobs = mysqlTable("batchJobs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  status: mysqlEnum("status", ["pending", "processing", "completed", "failed"]).default("pending").notNull(),
+  totalCount: int("totalCount").notNull(),
+  successCount: int("successCount").default(0).notNull(),
+  failedCount: int("failedCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({ userIdx: index("batch_jobs_user_idx").on(table.userId) }));
+
+export const batchJobItems = mysqlTable("batchJobItems", {
+  id: int("id").autoincrement().primaryKey(),
+  batchId: int("batchId").notNull(),
+  sourceUrl: varchar("sourceUrl", { length: 700 }).notNull(),
+  status: mysqlEnum("status", ["pending", "success", "error"]).default("pending").notNull(),
+  errorMessage: text("errorMessage"),
+  scrapedAppId: int("scrapedAppId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({ batchIdx: index("batch_items_batch_idx").on(table.batchId) }));
+
+export type BatchJob = typeof batchJobs.$inferSelect;
+export type BatchJobItem = typeof batchJobItems.$inferSelect;

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  ensureSeededIdeas: vi.fn(), getIdeaStats: vi.fn(), listIdeas: vi.fn(), getIdeaDetail: vi.fn(),
+  ensureSeededIdeas: vi.fn(), getIdeaStats: vi.fn(), listIdeas: vi.fn(), getIdeaDetail: vi.fn(), getIdeasForComparison: vi.fn(),
   getOpenRouterSetting: vi.fn(), saveOpenRouterSetting: vi.fn(), listScrapedApps: vi.fn(), saveScrapedApp: vi.fn(),
-  createChatMessage: vi.fn(), getThreadMessages: vi.fn(), scrapeStoreApp: vi.fn(), listOpenRouterModels: vi.fn(), completeOpenRouter: vi.fn(),
+  createChatMessage: vi.fn(), getThreadMessages: vi.fn(), scrapeStoreApp: vi.fn(), listOpenRouterModels: vi.fn(), completeOpenRouter: vi.fn(), createBatchJob: vi.fn(), getBatchJob: vi.fn(), listBatchJobs: vi.fn(), processNextBatchItem: vi.fn(),
 }));
 
 vi.mock("./db", () => mocks);
@@ -20,7 +20,8 @@ beforeEach(() => {
   mocks.ensureSeededIdeas.mockResolvedValue({ seeded: false, ideas: 200, competitors: 600 });
   mocks.getIdeaStats.mockResolvedValue({ ideas: 200, competitors: 600, lowCompetition: 80, highRevenue: 120, categories: [] });
   mocks.listIdeas.mockResolvedValue([{ id: 1, title: "Test idea", category: "Tools" }]);
-  mocks.getIdeaDetail.mockResolvedValue({ id: 1, title: "Test idea", category: "Tools", summary: "Summary", targetAudience: "Users", problem: "Problem", solution: "Solution", monetizationModel: "Subscription", competitors: [] });
+  mocks.getIdeaDetail.mockResolvedValue({ id: 1, title: "Test idea", category: "Tools", summary: "Summary", targetAudience: "Users", problem: "Problem", solution: "Solution", uniqueValue: "Unique", subcategory: "Workflow", competitionLevel: "Low", competitionScore: 25, revenuePotential: "Strong", monetizationModel: "Subscription", mvpScope: "MVP", implementationPlan: "Plan", validationPlan: "Validate", risks: "Risks", competitors: [] });
+  mocks.getIdeasForComparison.mockResolvedValue([{ id: 1, title: "Test idea", category: "Tools", summary: "Summary", targetAudience: "Users", problem: "Problem", solution: "Solution", uniqueValue: "Unique", subcategory: "Workflow", competitionLevel: "Low", competitionScore: 25, revenuePotential: "Strong", monetizationModel: "Subscription", mvpScope: "MVP", implementationPlan: "Plan", validationPlan: "Validate", risks: "Risks", competitors: [] }, { id: 2, title: "Second idea", category: "AI", summary: "Summary", targetAudience: "Teams", problem: "Problem", solution: "Solution", uniqueValue: "Unique", subcategory: "AI", competitionLevel: "Medium", competitionScore: 55, revenuePotential: "Very strong", monetizationModel: "Usage-based", mvpScope: "MVP", implementationPlan: "Plan", validationPlan: "Validate", risks: "Risks", competitors: [] }]);
   mocks.listScrapedApps.mockResolvedValue([]);
   mocks.getOpenRouterSetting.mockResolvedValue({ userId: 7, apiKey: "sk-or-test-key", selectedModel: "test/model", modelLabel: "Test model" });
   mocks.saveOpenRouterSetting.mockResolvedValue({ userId: 7, apiKey: "sk-or-test-key", selectedModel: "test/model", modelLabel: "Test model" });
@@ -28,6 +29,10 @@ beforeEach(() => {
   mocks.scrapeStoreApp.mockResolvedValue({ store: "google_play", externalId: "com.test", sourceUrl: "https://play.google.com/store/apps/details?id=com.test", name: "Test app", screenshots: [], reviews: [], rawData: {}, reviewStatus: "ok" });
   mocks.saveScrapedApp.mockResolvedValue({ id: 10, name: "Test app" });
   mocks.createChatMessage.mockResolvedValue({ threadId: 55 });
+  mocks.createBatchJob.mockResolvedValue({ id: 8, userId: 7, status: "pending", totalCount: 2, successCount: 0, failedCount: 0, items: [] });
+  mocks.getBatchJob.mockResolvedValue({ id: 8, userId: 7, status: "processing", totalCount: 2, successCount: 1, failedCount: 0, items: [] });
+  mocks.listBatchJobs.mockResolvedValue([{ id: 8, userId: 7, status: "completed", totalCount: 2, successCount: 2, failedCount: 0 }]);
+  mocks.processNextBatchItem.mockResolvedValue({ id: 8, userId: 7, status: "processing", totalCount: 2, successCount: 1, failedCount: 0, items: [] });
   mocks.getThreadMessages.mockResolvedValue([{ id: 1, threadId: 55, role: "user", content: "How do I validate?", model: "test/model", createdAt: new Date() }]);
   mocks.completeOpenRouter.mockResolvedValue({ content: "Validate with ten interviews.", model: "test/model" });
 });
@@ -48,6 +53,14 @@ describe("ideas procedures", () => {
     expect(mocks.listIdeas).toHaveBeenCalledWith({ search: "offline", category: "Tools", limit: 10, offset: 0 });
   });
 
+  it("compares ideas and prepares Markdown reports", async () => {
+    const compared = await caller().ideas.compare({ ids: [1, 2] });
+    expect(compared).toHaveLength(2);
+    const report = await caller().ideas.compareReport({ ids: [1, 2], format: "markdown" });
+    expect(report.markdown).toContain("Idea comparison");
+    expect(mocks.getIdeasForComparison).toHaveBeenCalledWith([1, 2]);
+  });
+
   it("returns a detailed idea or a typed not-found error", async () => {
     const result = await caller().ideas.get({ id: 1 });
     expect(result.title).toBe("Test idea");
@@ -57,6 +70,16 @@ describe("ideas procedures", () => {
 });
 
 describe("scraper procedures", () => {
+  it("creates, lists, reads, and advances a batch job", async () => {
+    const created = await caller().scraper.batchCreate({ sourceUrls: ["https://play.google.com/store/apps/details?id=com.test", "https://apps.apple.com/us/app/test/id123456789"] });
+    expect(created.id).toBe(8);
+    expect(await caller().scraper.batchList()).toHaveLength(1);
+    expect((await caller().scraper.batchGet({ batchId: 8 }))?.status).toBe("processing");
+    expect((await caller().scraper.batchProcessNext({ batchId: 8 }))?.successCount).toBe(1);
+    expect(mocks.createBatchJob).toHaveBeenCalledWith(7, expect.arrayContaining([expect.stringContaining("play.google.com")]));
+    expect(mocks.processNextBatchItem).toHaveBeenCalledWith(7, 8);
+  });
+
   it("scrapes and persists a listing for the authenticated user", async () => {
     const result = await caller().scraper.scrape({ sourceUrl: "https://play.google.com/store/apps/details?id=com.test" });
     expect(result.id).toBe(10);

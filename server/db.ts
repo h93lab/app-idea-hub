@@ -5,6 +5,8 @@ import {
   ideaChatMessages,
   ideaChatThreads,
   ideas,
+  batchJobs,
+  batchJobItems,
   openRouterSettings,
   scrapedAppReviews,
   scrapedApps,
@@ -14,6 +16,7 @@ import {
 } from "../drizzle/schema";
 import { seedIdeas } from "./seedData";
 import { ENV } from "./_core/env";
+import { scrapeStoreApp } from "./scraper";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -218,4 +221,75 @@ export async function createChatMessage(userId: number, ideaId: number, role: "u
   return { threadId: currentThreadId };
 }
 
-export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages };
+export async function getIdeasForComparison(ids: number[]) {
+  const db = await getDb();
+  if (!db || ids.length < 2) return [];
+  const rows = await db.select().from(ideas).where(inArray(ideas.id, ids));
+  const ordered = ids.map(id => rows.find(row => row.id === id)).filter((row): row is typeof rows[number] => Boolean(row));
+  return Promise.all(ordered.map(async idea => ({ ...idea, competitors: await db.select().from(competitors).where(eq(competitors.ideaId, idea.id)) })));
+}
+
+export async function createBatchJob(userId: number, urls: string[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const normalized = Array.from(new Set(urls.map(url => url.trim()).filter(Boolean)));
+  if (!normalized.length) throw new Error("At least one store URL is required");
+  const inserted = await db.insert(batchJobs).values({ userId, totalCount: normalized.length, status: "processing" });
+  const batchId = Number(inserted[0]?.insertId);
+  if (!batchId) throw new Error("Batch job could not be created");
+  await db.insert(batchJobItems).values(normalized.map(sourceUrl => ({ batchId, sourceUrl })));
+  
+  // Eagerly process items server-side so batch imports run reliably even if the client view changes
+  let currentJob = await getBatchJob(userId, batchId);
+  while (currentJob && currentJob.items.some(item => item.status === "pending")) {
+    await processNextBatchItem(userId, batchId);
+    currentJob = await getBatchJob(userId, batchId);
+  }
+  return currentJob ?? getBatchJob(userId, batchId);
+}
+
+export async function listBatchJobs(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(batchJobs).where(eq(batchJobs.userId, userId)).orderBy(desc(batchJobs.updatedAt)).limit(20);
+}
+
+export async function getBatchJob(userId: number, batchId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const job = (await db.select().from(batchJobs).where(and(eq(batchJobs.id, batchId), eq(batchJobs.userId, userId))).limit(1))[0];
+  if (!job) return undefined;
+  const items = await db.select().from(batchJobItems).where(eq(batchJobItems.batchId, batchId)).orderBy(batchJobItems.id);
+  return { ...job, items };
+}
+
+export async function processNextBatchItem(userId: number, batchId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const job = (await db.select().from(batchJobs).where(and(eq(batchJobs.id, batchId), eq(batchJobs.userId, userId))).limit(1))[0];
+  if (!job) throw new Error("Batch job not found");
+  const next = (await db.select().from(batchJobItems).where(and(eq(batchJobItems.batchId, batchId), eq(batchJobItems.status, "pending"))).orderBy(batchJobItems.id).limit(1))[0];
+  if (!next) {
+    await db.update(batchJobs).set({ status: job.failedCount ? "failed" : "completed", updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
+    return getBatchJob(userId, batchId);
+  }
+  await db.update(batchJobs).set({ status: "processing", updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
+  try {
+    const result = await scrapeStoreApp(next.sourceUrl);
+    const saved = await saveScrapedApp({ ...result, userId });
+    await db.update(batchJobItems).set({ status: "success", scrapedAppId: saved.id }).where(eq(batchJobItems.id, next.id));
+    await db.update(batchJobs).set({ successCount: job.successCount + 1, updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to scrape this URL";
+    await db.update(batchJobItems).set({ status: "error", errorMessage: message }).where(eq(batchJobItems.id, next.id));
+    await db.update(batchJobs).set({ failedCount: job.failedCount + 1, updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
+  }
+  const remaining = await db.select({ count: sql<number>`count(*)` }).from(batchJobItems).where(and(eq(batchJobItems.batchId, batchId), eq(batchJobItems.status, "pending")));
+  if (Number(remaining[0]?.count ?? 0) === 0) {
+    const latest = (await db.select().from(batchJobs).where(eq(batchJobs.id, batchId)).limit(1))[0];
+    if (latest) await db.update(batchJobs).set({ status: latest.failedCount ? "failed" : "completed", updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
+  }
+  return getBatchJob(userId, batchId);
+}
+
+export { competitors, ideas, scrapedApps, scrapedAppReviews, scrapedAppScreenshots, openRouterSettings, ideaChatThreads, ideaChatMessages, batchJobs, batchJobItems };

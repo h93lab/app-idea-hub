@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AIWorkspace from "@/pages/AIWorkspace";
+import Compare from "@/pages/Compare";
 import IdeaDetail from "@/pages/IdeaDetail";
 import Ideas from "@/pages/Ideas";
 import NotFound from "@/pages/NotFound";
@@ -16,6 +17,7 @@ function Router() {
     <Route path="/" component={Home} />
     <Route path="/ideas" component={Ideas} />
     <Route path="/ideas/:id" component={IdeaDetail} />
+    <Route path="/compare" component={Compare} />
     <Route path="/scraper" component={Scraper} />
     <Route path="/ai" component={AIWorkspace} />
     <Route path="/settings" component={Settings} />

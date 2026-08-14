@@ -21,3 +21,14 @@
 - [x] Add Vitest coverage for scraper listing plus AI settings and history procedures
 - [x] Generate a concrete 600-row per-idea competitor catalog from the rotated selections and persist it as seed source data
 - [x] Add Vitest coverage for AI analyzeIdea and dashboard bootstrap/stats procedures
+
+# Platform Expansion TODO
+- [x] Add database schema and tRPC router for batch import jobs and items
+- [x] Build side-by-side idea and competitor comparison view
+- [x] Build batch URL import workspace with background processing simulation and progress tracking
+- [x] Implement Markdown and formatted PDF report export for ideas and competitor analyses
+- [x] Add Vitest coverage for comparison, batch import, and export procedures
+- [x] Implement server-side automatic batch progression for background imports
+- [x] Add Vitest tests for Markdown and PDF report download endpoints
+- [ ] Implement asynchronous background queueing for batch jobs with observable progress
+- [ ] Add integration tests for Express report download routes
