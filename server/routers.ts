@@ -200,15 +200,18 @@ export const appRouter = router({
       const saved = await saveKeywordExplorer(ctx.user.id, { keyword, difficulty, competitorCount: signals.competitorCount, notes, analysis });
       return { record: saved, keyword, searchVolume: null, cpiEstimate: null, difficulty, competitorCount: signals.competitorCount, matchedApps: signals.examples, analysis, model, dataQuality: "Search-volume and CPI metrics require a connected ASO data source; no values are fabricated." };
     }),
-    generateMarketingDescription: protectedProcedure.input(z.object({ keywordExplorerId: z.number().int().positive(), appName: z.string().min(2).max(160), audience: z.string().min(2).max(500), tone: z.enum(["professional", "friendly", "bold", "minimal"]).default("professional"), language: z.enum(["English", "Arabic", "Bilingual"]).default("English") })).mutation(async ({ ctx, input }) => {
+    generateMarketingDescriptionDraft: protectedProcedure.input(z.object({ keywordExplorerId: z.number().int().positive(), appName: z.string().min(2).max(160), audience: z.string().min(2).max(500), tone: z.enum(["professional", "friendly", "bold", "minimal"]).default("professional"), language: z.enum(["English", "Arabic", "Bilingual"]).default("English") })).mutation(async ({ ctx, input }) => {
       const exploration = requireDbResult(await getKeywordExplorer(ctx.user.id, input.keywordExplorerId), "Keyword exploration not found");
       const setting = await getConfiguredOpenRouter(ctx.user.id);
       const response = await completeOpenRouter({ apiKey: setting.apiKey, model: setting.selectedModel, temperature: 0.65, messages: [
         { role: "system", content: "You are a mobile app marketing copywriter. Write a clear, differentiated store-ready marketing description using the supplied keyword naturally. Do not invent ratings, downloads, awards, testimonials, customer results, or market statistics. Label any product promise as a positioning hypothesis. Return markdown with a short headline, a 100-150 word description, three benefit bullets, and one CTA. Respect the requested language and tone." },
         { role: "user", content: `App name: ${input.appName}\nAudience: ${input.audience}\nTone: ${input.tone}\nLanguage: ${input.language}\nPrimary keyword: ${exploration.keyword}\nRelated saved listing matches: ${exploration.competitorCount}\nASO analysis: ${exploration.analysis || "No prior analysis"}` },
       ] });
-      const saved = await saveKeywordMarketingDescription(ctx.user.id, input.keywordExplorerId, { description: response.content, model: response.model, appName: input.appName, audience: input.audience, tone: input.tone, language: input.language });
-      return { description: response.content, model: response.model, record: saved.explorer, archive: saved.archive };
+      return { description: response.content, model: response.model, appName: input.appName, audience: input.audience, tone: input.tone, language: input.language, keywordExplorerId: input.keywordExplorerId };
+    }),
+    saveMarketingDescriptionDraft: protectedProcedure.input(z.object({ keywordExplorerId: z.number().int().positive(), appName: z.string().min(2).max(160), audience: z.string().min(2).max(500), tone: z.enum(["professional", "friendly", "bold", "minimal"]).default("professional"), language: z.enum(["English", "Arabic", "Bilingual"]).default("English"), description: z.string().min(10).max(10000), model: z.string() })).mutation(async ({ ctx, input }) => {
+      const saved = await saveKeywordMarketingDescription(ctx.user.id, input.keywordExplorerId, { description: input.description, model: input.model, appName: input.appName, audience: input.audience, tone: input.tone, language: input.language });
+      return { description: input.description, archive: saved.archive };
     }),
   }),
   scraper: router({

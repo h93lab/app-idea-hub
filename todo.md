@@ -49,7 +49,13 @@
 - [x] Add Vitest tests for pre-save marketing editing and AI sentiment analysis, and execute final build and visual verification
 
 # Precise Gap Closure TODO
-- [ ] Implement pre-save marketing draft editor in ASO tab before archiving or exporting
-- [ ] Remove all non-blue accents (violet, cyan, amber, emerald, rose) from PersonalStudio.tsx and replace with electric blue and monochrome AMOLED tokens
-- [ ] Add Vitest tests for pre-save marketing draft editing and AI sentiment analysis
-- [ ] Run pnpm check, pnpm test, pnpm build, and take a visual verification screenshot
+- [x] Implement pre-save marketing draft editor in ASO tab before archiving or exporting
+- [x] Remove all non-blue accents (violet, cyan, amber, emerald, rose) from PersonalStudio.tsx and replace with electric blue and monochrome AMOLED tokens
+- [x] Add Vitest tests for pre-save marketing draft editing and AI sentiment analysis
+- [x] Run pnpm check, pnpm test, pnpm build, and take a visual verification screenshot
+
+# Verified Real-Gap Remediation TODO
+- [ ] Implement true pre-save marketing draft state that does not auto-save to database until user clicks Save
+- [ ] Clean up remaining non-blue accent classes in PersonalStudio.tsx
+- [ ] Add dedicated Vitest test for pre-save draft editing and AI sentiment analysis
+- [ ] Run final pnpm check, pnpm test, pnpm build, and capture verification screenshot

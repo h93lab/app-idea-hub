@@ -231,10 +231,13 @@ describe("rating history and marketing description procedures", () => {
     expect(mocks.listCompetitorRatingHistory).toHaveBeenCalledWith(7);
   });
 
-  it("uses the selected keyword and OpenRouter model to persist marketing copy", async () => {
-    const result = await caller().keywords.generateMarketingDescription({ keywordExplorerId: 21, appName: "Invoice Pocket", audience: "independent contractors", tone: "friendly", language: "English" });
-    expect(result.description).toContain("Validate with ten interviews.");
-    expect(result.model).toBe("test/model");
+  it("uses the selected keyword and OpenRouter model to generate marketing draft and save to archive", async () => {
+    const draft = await caller().keywords.generateMarketingDescriptionDraft({ keywordExplorerId: 21, appName: "Invoice Pocket", audience: "independent contractors", tone: "friendly", language: "English" });
+    expect(draft.description).toContain("Validate with ten interviews.");
+    expect(draft.model).toBe("test/model");
+
+    const saved = await caller().keywords.saveMarketingDescriptionDraft({ keywordExplorerId: 21, appName: "Invoice Pocket", audience: "independent contractors", tone: "friendly", language: "English", description: draft.description, model: draft.model });
+    expect(saved.description).toContain("Validate with ten interviews.");
     expect(mocks.saveKeywordMarketingDescription).toHaveBeenCalledWith(7, 21, { description: "Validate with ten interviews.", model: "test/model", appName: "Invoice Pocket", audience: "independent contractors", tone: "friendly", language: "English" });
   });
 });
