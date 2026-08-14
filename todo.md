@@ -30,5 +30,11 @@
 - [x] Add Vitest coverage for comparison, batch import, and export procedures
 - [x] Implement server-side automatic batch progression for background imports
 - [x] Add Vitest tests for Markdown and PDF report download endpoints
-- [ ] Implement asynchronous background queueing for batch jobs with observable progress
-- [ ] Add integration tests for Express report download routes
+- [x] Implement asynchronous background queueing for batch jobs with observable progress
+- [x] Add integration tests for Express report download routes
+- [x] Add explicit HTTP-level route tests using node http client for report downloads
+- [x] Add comprehensive HTTP-level tests for actual idea and comparison report routes
+- [x] Add PDF and comparison route coverage to real HTTP integration tests
+- [x] Add PDF comparison and invalid-format HTTP route integration tests
+- [x] Add comparison invalid-format and content-disposition header HTTP tests
+- [x] Add content-disposition header assertion for comparison report downloads
