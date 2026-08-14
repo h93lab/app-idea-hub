@@ -113,3 +113,6 @@
 - [x] Implement PIN login (0566) replacing OAuth login
 - [x] Add PIN verification procedure and frontend PIN login screen
 - [x] Test PIN login flow and verify production build
+
+# GitHub Export - PIN Authentication Update
+- [ ] Push PIN authentication update to GitHub repository
